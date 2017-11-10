@@ -10,13 +10,14 @@ ENV LANG C.UTF-8
 # WORKDIR /
 
 
-COPY package.json .
+# COPY package.json .
 
-RUN apk add --no-cache jq nodejs nodejs-npm \
-        && npm install --production
+RUN apk add --no-cache jq nodejs nodejs-npm 
+
+RUN npm install --production
 
 # COPY server.js /
-COPY . ./
+# COPY . ./
 
 # Expose Configuration Volume
 VOLUME /config
