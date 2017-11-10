@@ -7,6 +7,7 @@ RUN apk add --no-cache nodejs nodejs-npm
 WORKDIR /life360
 
 COPY package.json /life360
+COPY server.js /life360
 RUN npm install --production
 
 # COPY server.js /
