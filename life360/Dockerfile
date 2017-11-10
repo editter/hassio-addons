@@ -12,7 +12,7 @@ ENV LANG C.UTF-8
 
 # COPY package.json .
 
-RUN apk add --no-cache jq nodejs nodejs-npm 
+RUN apk add --no-cache nodejs nodejs-npm
 
 RUN npm install --production
 
