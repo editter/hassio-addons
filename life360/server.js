@@ -30,13 +30,13 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   OPTIONS = path.join(CONFIG_DIR, 'options.json'),
   CURRENT_VERSION = require('./package').version;
 
-let config = require(OPTIONS),
+let config = require('./data/options.json'),
   state = loadSavedState({
     savedToken: null,
-    circles: [{
+    circles: [/*{
       id: '',
       name: null,
-    }],
+    }*/],
     queueHistory: {},
     data: null,
     CURRENT_VERSION
@@ -60,7 +60,8 @@ function loadSavedState(defaults) {
   try {
     output = require(STATE_FILE);
   } catch (ex) {
-    winston.info("No previous state found, continuing");
+    winston.info("No previous state found, continuing" + ex.message);
+
     output = defaults;
   }
   return output;
@@ -140,7 +141,7 @@ async function refreshState() {
     const topic = `/${config.preface}/data-change`;
     winston.info("Interval run: %s", state.data);
     state.queueHistory[topic] = state.data;
-    client.publish(topic, state.data, {
+    client.publish(topic, JSON.stringify(state.data), {
       retain: true
     });
     winston.info('message was written to ' + topic);
@@ -153,7 +154,7 @@ async function getData() {
   let results = [];
   const headers = {
     headers: {
-      Authorization: this.savedToken
+      Authorization: state.savedToken
     }
   };
   state.circles.forEach(async circ => {
