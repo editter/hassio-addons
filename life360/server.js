@@ -1,7 +1,8 @@
 /*eslint quotes: [2, single"]*/
 /*eslint-env es6*/
 /*jslint esversion: 6 */
-"use strict";
+
+// 'use strict';
 
 const winston = require('winston'),
   express = require('express'),
@@ -11,23 +12,24 @@ const winston = require('winston'),
   mqtt = require('mqtt'),
   async = require('async'),
   path = require('path'),
-  rl = require('url'),
+  // rl = require('url'),
   joi = require('joi'),
-  aml = require('js-yaml'),
+  // aml = require('js-yaml'),
   jsonfile = require('jsonfile'),
-  fs = require('fs'),
+  // fs = require('fs'),
   axios = require('axios');
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
-const CONFIG_DIR = process.env.CONFIG_DIR || process.cwd(),
+const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   STATE_FILE = path.join(CONFIG_DIR, 'state.json'),
   EVENTS_LOG = path.join(CONFIG_DIR, 'events.log'),
   ACCESS_LOG = path.join(CONFIG_DIR, "access.log"),
   ERROR_LOG = path.join(CONFIG_DIR, 'error.log'),
+  OPTIONS = path.join(CONFIG_DIR, 'options.json'),
   CURRENT_VERSION = require('./package').version;
 
-let config = require('./options') || {
+let config = require(OPTIONS) || {
     mqttHost: '172.17.0.1',
     mqttPort: 1883,
     preface: 'life360',
@@ -55,32 +57,18 @@ winston.add(winston.transports.File, {
   filename: EVENTS_LOG,
   json: false
 });
-axios.defaults.baseURL = 'https://api.life360.com/v3/'
+
 const app = express(),
   client = mqtt.connect(`mqtt://${config.mqttHost}:${config.mqttPort}`, {
     username: config.mqttUsername,
     password: config.mqttPassword
   });
 
-// /**
-//  * Load user configuration (or create it)
-//  * @method loadConfiguration
-//  * @return {Object} Configuration
-//  */
-// function loadConfiguration() {
-//   if (!fs.existsSync(CONFIG_FILE)) {
-//     winston.info('No previous configuration found, creating one');
-//     fs.writeFileSync(CONFIG_FILE, fs.readFileSync(SAMPLE_FILE));
-//   }
-
-//   return yaml.safeLoad(fs.readFileSync(CONFIG_FILE).toString());
-// }
-
 
 function loadSavedState(defaults) {
   let output;
   try {
-    output = jsonfile.readFileSync(STATE_FILE);
+    output = require(STATE_FILE);
   } catch (ex) {
     winston.info("No previous state found, continuing");
     output = defaults;
@@ -89,51 +77,51 @@ function loadSavedState(defaults) {
 }
 
 async function refreshToken() {
+
+  // try {
   const headers = {
     headers: {
-      Authorization: "bearer " + baseAuthKey
+      Authorization: "basic " + baseAuthKey
     }
   };
-  try {
-    const authResponse = await axios.post("oauth2/token.json", {
-      grant_type: "password",
-      username: state.username,
-      password: state.password
-    }, headers);
+  const authResponse = await axios.post("https://api.life360.com/v3/oauth2/token.json", {
+    grant_type: "password",
+    username: config.life360User,
+    password: config.life360Password
+  }, headers);
 
-    if (authResponse.data.access_token) {
-      state.savedToken = authResponse.data.token_type + " " + authResponse.data.access_token;
-    } else {
-      winston.warn("No token was returned. " + authResponse.data.errorMessage);
-    }
-  } catch (err) {
-    console.error("TESTETSSET", err);
+  if (authResponse.data.access_token) {
+    state.savedToken = authResponse.data.token_type + " " + authResponse.data.access_token;
+  } else {
+    winston.warn("No token was returned. " + authResponse.data.errorMessage);
+    return;
   }
+
   headers.headers = {
     Authorization: state.savedToken
   };
-  const circleResponse = await axios.get("circles.json");
+  const circleResponse = await axios.get("https://api.life360.com/v3/circles.json", headers);
   if (Array.isArray(circleResponse.data.circles)) {
-    circleResponse.data.circle.forEach(circ => {
+    circleResponse.data.circles.forEach(circ => {
       if (config.life360CircleNames.some(conf => conf.toLowerCase() === circ.name.toLowerCase())) {
-        state.circles.publish({
+        state.circles.push({
           id: circ.id,
           name: circ.name
         });
       }
-    })
+    });
 
   } else {
     winston.warn("No circles were returned from the request. " + circleResponse.data.errorMessage);
   }
 
-  state.circles.forEach(async circ => {
+  state.circles.forEach(async(circ) => {
 
 
-    await axios.delete(`circles/${circ.id}/webhook.json`, headers);
+    await axios.delete(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, headers);
     if (config.life360ReturnHost && config.life360ReturnHost.length > 0) {
       const returnUrl = config.life360ReturnHost + ":" + config.life360ReturnPort + "/webhook";
-      const webhookResponse = await axios.post(`circles/${circ.id}/webhook.json`, {
+      const webhookResponse = await axios.post(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, {
         url: returnUrl
       }, headers);
 
@@ -143,13 +131,14 @@ async function refreshToken() {
     }
   });
 
+  // } catch (err) {
+  //   console.error("TESTETSSET", err);
+  // }
+
 
 }
 
-/**
- * Resubscribe on a periodic basis
- * @method refreshState
- */
+
 async function refreshState() {
   winston.info("Saving current state");
 
@@ -166,7 +155,7 @@ async function refreshState() {
   });
 }
 
-function getData() {
+async function getData() {
   let results = [];
   const headers = {
     headers: {
@@ -175,8 +164,8 @@ function getData() {
   };
   state.circles.forEach(async circ => {
 
-    const membersResponse = await axios.get(`circles/${circ.id}/members.json`, headers);
-    const placesResponse = await axios.get(`circles/${circ.id}/places.json`, headers);
+    const membersResponse = await axios.get(`https://api.life360.com/v3/circles/${circ.id}/members.json`, headers);
+    const placesResponse = await axios.get(`https://api.life360.com/v3/circles/${circ.id}/places.json`, headers);
 
     let request = {
       circleId: circ.id,
@@ -259,17 +248,23 @@ async.series([
     }));
 
     // webhook event from life360
-    app.post("/webhook",
+    app.all("/webhook",
       expressJoi({
         body: {
-          circleId: joi.string().required(),
-          placeId: joi.string().required(),
-          userId: joi.string().required(),
-          direction: joi.string().required(),
-          timestamp: joi.string().required(),
+          circleId: joi.string(),
+          placeId: joi.string(),
+          userId: joi.string(),
+          direction: joi.string(),
+          timestamp: joi.string(),
         }
       }), handleWebhook);
 
+    app.get('/sanity', (req, res, next) => {
+
+      res.send({
+        status: 'OK 1'
+      });
+    });
     // subscribe event from SmartThings
     // app.post('/subscribe',
     //   expressJoi({

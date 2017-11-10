@@ -1,10 +1,11 @@
 {
   "name": "life360",
-  "version": "1.4",
+  "version": "1.5",
   "slug": "life360",
   "description": "Life 360 addon for getting locaiton data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
   "startup": "application",
+  "webui": "[PROTO:ssl]://[HOST]:[PORT:8081]",
   "boot": "auto",
   "host_network": true,
   "ports": {

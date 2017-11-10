@@ -1,8 +1,9 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
+# FROM node:8
 
 ENV LANG C.UTF-8
-RUN apk add --no-cache nodejs nodejs-npm
+RUN apk add --no-cache nodejs-current nodejs-npm
 
 WORKDIR /life360
 
@@ -13,10 +14,10 @@ RUN npm install --production
 # COPY server.js /
 
 # Expose Configuration Volume
-VOLUME /config
+# VOLUME /data
 EXPOSE 8081
 
-ENV CONFIG_DIR=/config
+ENV CONFIG_DIR=/data
 
 COPY run.sh /
 RUN chmod a+x /run.sh
@@ -28,7 +29,6 @@ CMD [ "/run.sh" ]
 # ARG BUILD_FROM
 # FROM $BUILD_FROM
 
-# FROM node:8
 
 # ENV LANG C.UTF-8
 
