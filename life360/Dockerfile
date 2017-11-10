@@ -25,9 +25,11 @@ ENV CONFIG_DIR=/config
 # Exoise the web service port
 EXPOSE 8081
 
-COPY run.sh /
-RUN chmod a+x /run.sh
+# COPY run.sh /
+# RUN chmod a+x /run.sh
 
 # Run the service
-CMD [ "/run.sh" ]
+# CMD [ "/run.sh" ]
+CMD [ "npm", "start" ]
+
 
