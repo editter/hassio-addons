@@ -8,6 +8,7 @@
   "webui": "[PROTO:ssl]://[HOST]:[PORT:8081]",
   "boot": "auto",
   "host_network": true,
+  "map": ["ssl"],
   "ports": {
     "8081/tcp": 8081
   },
@@ -17,6 +18,8 @@
     "preface": "life360",
     "mqttUsername": "",
     "mqttPassword": "",
+    "certFile": "fullchain.pem",
+    "keyFile": "privkey.pem",
     "life360ReturnHost": "",
     "life360ReturnPort": 8081,
     "life360User": "",
@@ -29,6 +32,8 @@
     "preface": "str",
     "mqttUsername": "str",
     "mqttPassword": "str",
+    "certFile": "str",
+    "keyFile": "str",
     "life360ReturnHost": "str",
     "life360ReturnPort": "int",
     "life360User": "str",

@@ -6,6 +6,7 @@
 
 const winston = require('winston'),
   express = require('express'),
+  https = require('https'),
   expressJoi = require('express-joi-validator'),
   expressWinston = require('express-winston'),
   bodyparser = require('body-parser'),
@@ -16,7 +17,7 @@ const winston = require('winston'),
   joi = require('joi'),
   // aml = require('js-yaml'),
   jsonfile = require('jsonfile'),
-  // fs = require('fs'),
+  fs = require('fs'),
   axios = require('axios');
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
@@ -29,18 +30,7 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   OPTIONS = path.join(CONFIG_DIR, 'options.json'),
   CURRENT_VERSION = require('./package').version;
 
-let config = require(OPTIONS) || {
-    mqttHost: '172.17.0.1',
-    mqttPort: 1883,
-    preface: 'life360',
-    mqttUsername: null,
-    mqttPassword: null,
-    life360ReturnHost: '',
-    life360ReturnPort: 8081,
-    life360User: '',
-    life360Password: '',
-    life360CircleNames: ['']
-  },
+let config = require(OPTIONS),
   state = loadSavedState({
     savedToken: null,
     circles: [{
@@ -142,17 +132,21 @@ async function refreshToken() {
 async function refreshState() {
   winston.info("Saving current state");
 
-
-  state.data = await getData();
-  jsonfile.writeFileSync(STATE_FILE, state, {
-    spaces: 4
-  });
-  const topic = `/${config.preface}/data-change`;
-  winston.info("Interval run: %s", state.data);
-  state.queueHistory[topic] = state.data;
-  client.publish(topic, state.data, {
-    retain: true
-  });
+  try {
+    state.data = await getData();
+    jsonfile.writeFileSync(STATE_FILE, state, {
+      spaces: 4
+    });
+    const topic = `/${config.preface}/data-change`;
+    winston.info("Interval run: %s", state.data);
+    state.queueHistory[topic] = state.data;
+    client.publish(topic, state.data, {
+      retain: true
+    });
+    winston.info('message was written to ' + topic);
+  } catch (err) {
+    winston.error(err);
+  }
 }
 
 async function getData() {
@@ -198,28 +192,19 @@ async function getData() {
  * @param  {Response}  res            Result Object
  */
 
-function handleWebhook(req, res) {
-  // var topic = getTopicFor(req.body.name, req.body.type, TOPIC_STATE),
-  // let value = req.body.value;
-  const topic = `/${config.preface}/location-change`;
-  const data = req.body;
-  winston.info("Incoming message from Life360 Webhook: %s", data);
-  state.queueHistory[topic] = data;
-  client.publish(topic, data, {
-    retain: true
-  }, function () {
-    res.send({
-      status: "OK"
-    });
-  });
-}
+
 
 
 // main flow
 async.series([
   async function init(next) {
+    try {
+      await refreshToken();
+      winston.info('init/refresh token successful');
 
-    await refreshToken();
+    } catch (err) {
+      winston.error(err)
+    }
     next();
 
   },
@@ -227,12 +212,12 @@ async.series([
     winston.info("Configuring autosave");
 
     // save current state every 15 minutes
-    setInterval(refreshState, 15 * 60 * 1000);
+    setInterval(refreshState, 3 * 60 * 1000);
 
     process.nextTick(next);
   },
   function setupApp(next) {
-    winston.info("Configuring API");
+    winston.info("Configuring API endpoints");
 
     // accept JSON
     app.use(bodyparser.json());
@@ -257,22 +242,27 @@ async.series([
           direction: joi.string(),
           timestamp: joi.string(),
         }
-      }), handleWebhook);
+      }), (req, res) => {
+        winston.info('received call from webhook');
+        const topic = `/${config.preface}/location-change`;
+        const data = req.body;
+        winston.info("Incoming message from Life360 Webhook: %s", data);
+        state.queueHistory[topic] = data;
+        client.publish(topic, data, {
+          retain: true
+        }, function () {
+          res.send({
+            status: "OK"
+          });
+        });
+      });
 
     app.get('/sanity', (req, res, next) => {
 
       res.send({
         status: 'OK 1'
-      });
+      }).end();
     });
-    // subscribe event from SmartThings
-    // app.post('/subscribe',
-    //   expressJoi({
-    //     body: {
-    //       devices: joi.object().required(),
-    //       callback: joi.string().required()
-    //     }
-    //   }), handleSubscribeEvent);
 
     // log all errors to disk
     app.use(expressWinston.errorLogger({
@@ -290,8 +280,13 @@ async.series([
         return res.status(err.output.statusCode).json(err.output.payload);
       }
     });
+    var options = {
+      cert: fs.readFileSync(path.join('/ssl/', config.certFile || 'fullchain.pem')),
+      key: fs.readFileSync(path.join('/ssl/', config.keyFile || 'privkey.pem'))
+    };
 
-    app.listen(config.life360ReturnPort, next);
+    // app.listen(config.life360ReturnPort, next);
+    https.createServer(options, app).listen(config.life360ReturnPort);
   }
 ], function (error) {
   if (error) {
