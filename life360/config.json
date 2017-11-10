@@ -1,0 +1,38 @@
+{
+  "name": "life360-addon",
+  "version": "1.0.0",
+  "slug": "life360",
+  "description": "Life 360 addon for getting locaiton data",
+  "url": "https://github.com/editter/hassio-addons/tree/master/life360",
+  "image": "editter/{arch}-life360",
+  "startup": "application",
+  "boot": "auto",
+  "host_network": true,
+  "ports": {
+    "8081/tcp": 8081
+  },
+  "options": {
+    "mqttHost": "172.17.0.1",
+    "mqttPort": 1883,
+    "preface": "life360",
+    "mqttUsername": null,
+    "mqttPassword": null,
+    "life360ReturnHost": "",
+    "life360ReturnPort": 8081,
+    "life360User": "",
+    "life360Password": "",
+    "life360CircleNames": [""]
+  },
+  "schema": {
+    "mqttHost": "str",
+    "mqttPort": "int",
+    "preface": "str",
+    "mqttUsername": "str",
+    "mqttPassword": "str",
+    "life360ReturnHost": "str",
+    "life360ReturnPort": "int",
+    "life360User": "str",
+    "life360Password": "str",
+    "life360CircleNames": ["str"]
+  }
+}

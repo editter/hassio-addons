@@ -1,0 +1,34 @@
+{
+  "name": "life360-addon",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=8.0"
+  },
+  "author": "Eric Ditter",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.5.2",
+    "axios": "^0.17.0",
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3",
+    "express-joi-validator": "^2.0.0",
+    "express-winston": "^1.2.0",
+    "joi": "^6.10.0",
+    "js-yaml": "^3.4.3",
+    "jsonfile": "^2.2.3",
+    "mqtt": "^1.7.0",
+    "semver": "^5.1.0",
+    "winston": "^2.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.10.0",
+    "jshint": "^2.9.5",
+    "jshint-esnext": "^2.7.0-3"
+  }
+}
