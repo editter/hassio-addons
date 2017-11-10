@@ -4,17 +4,18 @@ FROM $BUILD_FROM
 # FROM node:8
 
 ENV LANG C.UTF-8
-RUN apk add --no-cache nodejs nodejs-npm
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+RUN mkdir -p /life360
+WORKDIR /life360
 
 
-COPY package.json /usr/src/app/
-RUN npm install --production
+COPY package.json /life360
+
+RUN apk add --no-cache jq nodejs nodejs-npm \
+        && npm install --production
 
 # COPY server.js /
-COPY . /usr/src/app
+COPY . /life360
 
 # Expose Configuration Volume
 VOLUME /config
