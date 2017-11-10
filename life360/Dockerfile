@@ -1,7 +1,7 @@
-FROM node:8
-
 ARG BUILD_FROM
 FROM $BUILD_FROM
+
+# FROM node:8
 
 ENV LANG C.UTF-8
 RUN apk add --no-cache nodejs nodejs-npm
