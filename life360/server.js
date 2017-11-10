@@ -1,6 +1,8 @@
 /*eslint quotes: [2, single"]*/
 /*eslint-env es6*/
 /*jslint esversion: 6 */
+"use strict";
+
 const winston = require('winston'),
   express = require('express'),
   expressJoi = require('express-joi-validator'),

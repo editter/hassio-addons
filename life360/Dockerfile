@@ -1,21 +1,22 @@
+# FROM %%BASE_IMAGE%%
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# FROM node:8
+FROM node:8
 
 ENV LANG C.UTF-8
 
-RUN mkdir -p /life360
-WORKDIR /life360
+# RUN mkdir -p /
+# WORKDIR /
 
 
-COPY package.json /life360
+COPY package.json .
 
 RUN apk add --no-cache jq nodejs nodejs-npm \
         && npm install --production
 
 # COPY server.js /
-COPY . /life360
+COPY . ./
 
 # Expose Configuration Volume
 VOLUME /config
