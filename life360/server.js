@@ -7,18 +7,20 @@
 const winston = require('winston'),
   express = require('express'),
   https = require('https'),
-  expressJoi = require('express-joi-validator'),
+  // expressJoi = require('express-joi-validator'),
   expressWinston = require('express-winston'),
   bodyparser = require('body-parser'),
   mqtt = require('mqtt'),
   async = require('async'),
   path = require('path'),
   // rl = require('url'),
-  joi = require('joi'),
+  // joi = require('joi'),
   // aml = require('js-yaml'),
   jsonfile = require('jsonfile'),
   fs = require('fs'),
-  axios = require('axios');
+  Axios = require('axios');
+// import async from 'async';
+// import Axios from 'axios';
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
@@ -28,17 +30,22 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   ACCESS_LOG = path.join(CONFIG_DIR, "access.log"),
   ERROR_LOG = path.join(CONFIG_DIR, 'error.log'),
   OPTIONS = path.join(CONFIG_DIR, 'options.json'),
-  CURRENT_VERSION = require('./package').version;
+  CURRENT_VERSION = jsonfile.readFileSync(path.join('package.json')).version,
+  PORT = 8081;
 
-let config = require('./data/options.json'),
+
+let config = jsonfile.readFileSync('./data/options.json'),
   state = loadSavedState({
     savedToken: null,
-    circles: [/*{
-      id: '',
-      name: null,
-    }*/],
+    circles: [
+      /*{
+            id: '',
+            name: null,
+          }*/
+    ],
     queueHistory: {},
-    data: null,
+    members: [],
+    places: [],
     CURRENT_VERSION
   });
 
@@ -58,9 +65,9 @@ const app = express(),
 function loadSavedState(defaults) {
   let output;
   try {
-    output = require(STATE_FILE);
+    output = jsonfile.readFileSync(STATE_FILE);
   } catch (ex) {
-    winston.info("No previous state found, continuing" + ex.message);
+    winston.info("No previous state found, continuing " + ex.message);
 
     output = defaults;
   }
@@ -75,7 +82,7 @@ async function refreshToken() {
       Authorization: "basic " + baseAuthKey
     }
   };
-  const authResponse = await axios.post("https://api.life360.com/v3/oauth2/token.json", {
+  const authResponse = await Axios.post("https://api.life360.com/v3/oauth2/token.json", {
     grant_type: "password",
     username: config.life360User,
     password: config.life360Password
@@ -84,17 +91,17 @@ async function refreshToken() {
   if (authResponse.data.access_token) {
     state.savedToken = authResponse.data.token_type + " " + authResponse.data.access_token;
   } else {
-    winston.warn("No token was returned. " + authResponse.data.errorMessage);
-    return;
+    throw Error("No token was returned. " + authResponse.data.errorMessage)
   }
 
   headers.headers = {
     Authorization: state.savedToken
   };
-  const circleResponse = await axios.get("https://api.life360.com/v3/circles.json", headers);
+  const circleResponse = await Axios.get("https://api.life360.com/v3/circles.json", headers);
   if (Array.isArray(circleResponse.data.circles)) {
+    state.circles = [];
     circleResponse.data.circles.forEach(circ => {
-      if (config.life360CircleNames.some(conf => conf.toLowerCase() === circ.name.toLowerCase())) {
+      if (config.life360CircleNames.length === 0 || config.life360CircleNames.some(conf => conf.toLowerCase() === circ.name.toLowerCase())) {
         state.circles.push({
           id: circ.id,
           name: circ.name
@@ -105,14 +112,18 @@ async function refreshToken() {
   } else {
     winston.warn("No circles were returned from the request. " + circleResponse.data.errorMessage);
   }
-
+  state.places = [];
   state.circles.forEach(async(circ) => {
 
+    const placesResponse = await Axios.get(`https://api.life360.com/v3/circles/${circ.id}/places.json`, headers);
+    if (Array.isArray(placesResponse.data.places)) {
+      placesResponse.data.places.forEach(x => state.places.push(x));
+    }
 
-    await axios.delete(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, headers);
     if (config.life360ReturnHost && config.life360ReturnHost.length > 0) {
+      await Axios.delete(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, headers);
       const returnUrl = config.life360ReturnHost + ":" + config.life360ReturnPort + "/webhook";
-      const webhookResponse = await axios.post(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, {
+      const webhookResponse = await Axios.post(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, {
         url: returnUrl
       }, headers);
 
@@ -122,29 +133,41 @@ async function refreshToken() {
     }
   });
 
-  // } catch (err) {
-  //   console.error("TESTETSSET", err);
-  // }
-
-
 }
 
+function formatLocation(input) {
+  //  {"longitude": 1.0,"gps_accuracy": 60,"latitude": 2.0,"battery_level": 99.9}
+  return {
+    id: input.id,
+    longitude: input.location.longitude,
+    latitude: input.location.latitude,
+    gps_accuracy: input.location.accuracy,
+    battery_level: input.location.battery,
+    short_address: input.location.shortAddress,
+    is_intransit: input.location.inTransit,
+    name: input.firstName
+  }
+}
 
 async function refreshState() {
-  winston.info("Saving current state");
+  const topic = `/${config.preface}/data-change`;
 
   try {
-    state.data = await getData();
+    state.members = await getData();
+    const queueData = state.members.map(x => formatLocation(x));
+    state.queueHistory[topic] = queueData;
     jsonfile.writeFileSync(STATE_FILE, state, {
-      spaces: 4
+      spaces: 2
     });
-    const topic = `/${config.preface}/data-change`;
-    winston.info("Interval run: %s", state.data);
-    state.queueHistory[topic] = state.data;
-    client.publish(topic, JSON.stringify(state.data), {
-      retain: true
+
+    queueData.forEach(msg => {
+      const userTopic = `${topic}/${msg.id}`;
+      winston.info('Message was written to ' + userTopic);
+      client.publish(userTopic, JSON.stringify(msg), {
+        retain: true
+      });
     });
-    winston.info('message was written to ' + topic);
+
   } catch (err) {
     winston.error(err);
   }
@@ -152,146 +175,154 @@ async function refreshState() {
 
 async function getData() {
   let results = [];
+  if (!state.savedToken) {
+    await refreshToken();
+  }
+
   const headers = {
     headers: {
-      Authorization: state.savedToken
+      Authorization: state.savedToken || 'un-auth-request'
     }
   };
-  state.circles.forEach(async circ => {
 
-    const membersResponse = await axios.get(`https://api.life360.com/v3/circles/${circ.id}/members.json`, headers);
-    const placesResponse = await axios.get(`https://api.life360.com/v3/circles/${circ.id}/places.json`, headers);
+  return new Promise((accept, reject) => {
+    async.forEach(state.circles, (circ, callback) => {
+      Axios.get(`https://api.life360.com/v3/circles/${circ.id}/members.json`, headers)
+        .then(membersResponse => {
+          membersResponse.data.members.forEach(x => results.push(x));
+          callback();
+        })
+        .catch(err => {
+          if (err.status === 401) {
+            state.savedToken = null;
+          }
+          callback(err);
+        });
+    }, (err) => {
+      if (err) {
+        reject(err);
 
-    let request = {
-      circleId: circ.id,
-      circleName: circ.name,
-      data: {
-        members: membersResponse.data.members,
-        places: placesResponse.data.places
+      } else {
+        accept(results);
+
       }
-    };
-    results.push(request);
+    });
   });
-
-  return results;
 }
-
-
-
-/**
- * Handle Device Change/Push event from SmartThings
- *
- * @method handleWebhook
- *
- * @param  {Object} req
- * @param  {Object}  req.body
- * @param  {String}  req.body.circleId Circle id
- * @param  {String}  req.body.placeId Location they arrived or left
- * @param  {String}  req.body.userId User who arrived or left
- * @param  {String}  req.body.direction Direction they are travelling
- * @param  {String}  req.body.timestamp Timestamp of arrival or leaving
- * @param  {Response}  res            Result Object
- */
-
-
-
 
 // main flow
 async.series([
-  async function init(next) {
-    try {
-      await refreshToken();
-      winston.info('init/refresh token successful');
+    function init(next) {
+      refreshToken().then(() => {
+        winston.info('init/refresh token successful');
+        next();
 
-    } catch (err) {
-      winston.error(err)
-    }
-    next();
+      }).catch(err => {
+        winston.error('Error getting initial token request. Ending process');
+        winston.error(err);
+        process.exit(1);
 
-  },
-  function configureCron(next) {
-    winston.info("Configuring autosave");
+      });
 
-    // save current state every 15 minutes
-    setInterval(refreshState, 3 * 60 * 1000);
+    },
+    function configureCron(next) {
+      winston.info("Configuring auto update");
 
-    process.nextTick(next);
-  },
-  function setupApp(next) {
-    winston.info("Configuring API endpoints");
+      // save current state every 15 minutes
+      setInterval(refreshState, 15 * 60 * 1000);
+      refreshState();
+      process.nextTick(next);
+    },
+    function setupApp(next) {
+      winston.info("Configuring server");
 
-    // accept JSON
-    app.use(bodyparser.json());
+      // accept JSON
+      app.use(bodyparser.json());
 
-    // log all requests to disk
-    app.use(expressWinston.logger({
-      transports: [
-        new winston.transports.File({
-          filename: ACCESS_LOG,
-          json: false
-        })
-      ]
-    }));
+      // log all requests to disk
+      app.use(expressWinston.logger({
+        transports: [
+          new winston.transports.File({
+            filename: ACCESS_LOG,
+            json: false
+          })
+        ]
+      }));
 
-    // webhook event from life360
-    app.all("/webhook",
-      expressJoi({
-        body: {
-          circleId: joi.string(),
-          placeId: joi.string(),
-          userId: joi.string(),
-          direction: joi.string(),
-          timestamp: joi.string(),
-        }
-      }), (req, res) => {
-        winston.info('received call from webhook');
+      // webhook event from life360
+      app.all("/webhook", (req, res) => {
         const topic = `/${config.preface}/location-change`;
         const data = req.body;
-        winston.info("Incoming message from Life360 Webhook: %s", data);
+        winston.info("Incoming message from Life360 Webhook: %s", JSON.stringify(data));
         state.queueHistory[topic] = data;
-        client.publish(topic, data, {
+        client.publish(topic, JSON.stringify(data), {
           retain: true
-        }, function () {
+        }, () => {
           res.send({
             status: "OK"
           });
         });
       });
 
-    app.get('/sanity', (req, res, next) => {
+      app.all("/get-recent", (req, res) => {
+        const data = req.body;
+        winston.info('Incoming request for location');
+        const recent = state.members.map(x => formatLocation(x)).filter(x => x.name === data.name);
+        let response = '';
+        if (recent.length > 0) {
+          // respond with name is at recent[0].short_address
+          const person = recent[0];
+          response = `${data.name} is ${person.is_inTransit===0 ? 'moving near':'at'} ${person.short_address}`;
+        } else {
+          // respond with I couldnt find name
+          response = `I could not find ${data.name}`
+        }
 
-      res.send({
-        status: 'OK 1'
-      }).end();
-    });
+        res.send(response).end();
+      });
 
-    // log all errors to disk
-    app.use(expressWinston.errorLogger({
-      transports: [
-        new winston.transports.File({
-          filename: ERROR_LOG,
-          json: false
-        })
-      ]
-    }));
+      app.get('/sanity', (req, res, next) => {
 
-    // proper error messages with Joi
-    app.use(function (err, req, res, next) {
-      if (err.isBoom) {
-        return res.status(err.output.statusCode).json(err.output.payload);
+        res.send('Content Visible').end();
+      });
+
+      // log all errors to disk
+      app.use(expressWinston.errorLogger({
+        transports: [
+          new winston.transports.File({
+            filename: ERROR_LOG,
+            json: false
+          })
+        ]
+      }));
+
+      // proper error messages with Joi
+      app.use((err, req, res, next) => {
+        winston.error(err);
+
+        res.status(500).send({
+
+          errorMessage: 'An unhandled error occured'
+
+        });
+      });
+      if (config.certFile.length > 0 && config.keyFile.length > 0) {
+        winston.info('Certificate files found, listing via https');
+        const options = {
+          cert: fs.readFileSync(path.join('/ssl/', config.certFile)),
+          key: fs.readFileSync(path.join('/ssl/', config.keyFile))
+        };
+        https.createServer(options, app).listen(PORT, next);
+
+      } else {
+        winston.info('NO certificate files found, listing via http');
+        app.listen(PORT, next);
       }
-    });
-    var options = {
-      cert: fs.readFileSync(path.join('/ssl/', config.certFile || 'fullchain.pem')),
-      key: fs.readFileSync(path.join('/ssl/', config.keyFile || 'privkey.pem'))
-    };
-
-    // app.listen(config.life360ReturnPort, next);
-    https.createServer(options, app).listen(config.life360ReturnPort);
-  }
-], function (error) {
-  if (error) {
-    return winston.error(error);
-  }
-  winston.info("Listening at http://localhost:%s", config.life360ReturnPort);
-});
+    }
+  ],
+  (error) => {
+    if (error) {
+      return winston.error(error);
+    }
+    winston.info("Listening at port %s", PORT);
+  });
