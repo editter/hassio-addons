@@ -150,7 +150,7 @@ function formatLocation(input) {
 }
 
 async function refreshState() {
-  const topic = `/${config.preface}/data-change`;
+  const topic = `/${config.preface}/location`;
 
   try {
     state.members = await getData();
@@ -161,7 +161,7 @@ async function refreshState() {
     });
 
     queueData.forEach(msg => {
-      const userTopic = `${topic}/${msg.id}`;
+      const userTopic = `${topic}/${msg.name}`;
       winston.info('Message was written to ' + userTopic);
       client.publish(userTopic, JSON.stringify(msg), {
         retain: true
