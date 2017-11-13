@@ -3,7 +3,8 @@ services:
   - docker
 before_install:
   - sudo apt-get install jq
-  - docker pull homeassistant/amd64-builder
+  # - docker pull homeassistant/amd64-builder
+  - docker pull homeassistant/armhf-builder
 env:
   - ADDON="life360"
 script:
