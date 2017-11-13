@@ -10,5 +10,5 @@ before_install:
 env:
   - ADDON="life360"
 script:
-  - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  - docker login -u DOCKER_USER -p DOCKER_PWD
   - ./build.sh $ADDON
