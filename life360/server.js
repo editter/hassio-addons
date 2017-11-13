@@ -24,7 +24,7 @@ const winston = require('winston'),
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
-const CONFIG_DIR = process.env.CONFIG_DIR || './data',
+const CONFIG_DIR = process.env.CONFIG_DIR || '/data',
   STATE_FILE = path.join(CONFIG_DIR, 'state.json'),
   EVENTS_LOG = path.join(CONFIG_DIR, 'events.log'),
   ACCESS_LOG = path.join(CONFIG_DIR, "access.log"),
@@ -34,7 +34,7 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   PORT = 8081;
 
 
-let config = jsonfile.readFileSync('./data/options.json'),
+let config = jsonfile.readFileSync(CONFIG_DIR),
   state = loadSavedState({
     savedToken: null,
     circles: [
@@ -54,9 +54,10 @@ winston.add(winston.transports.File, {
   filename: EVENTS_LOG,
   json: false
 });
+const url = config.mqttHost.includes('://') ? config.mqttHost : `mqtt://${config.mqttHost}`;
 
 const app = express(),
-  client = mqtt.connect(`mqtt://${config.mqttHost}:${config.mqttPort}`, {
+  client = mqtt.connect(`${url}:${config.mqttPort}`, {
     username: config.mqttUsername,
     password: config.mqttPassword
   });
@@ -101,12 +102,11 @@ async function refreshToken() {
   if (Array.isArray(circleResponse.data.circles)) {
     state.circles = [];
     circleResponse.data.circles.forEach(circ => {
-      if (config.life360CircleNames.length === 0 || config.life360CircleNames.some(conf => conf.toLowerCase() === circ.name.toLowerCase())) {
-        state.circles.push({
-          id: circ.id,
-          name: circ.name
-        });
-      }
+      state.circles.push({
+        id: circ.id,
+        name: circ.name
+      });
+
     });
 
   } else {
@@ -281,9 +281,9 @@ async.series([
         res.send(response).end();
       });
 
-      app.get('/sanity', (req, res, next) => {
+      app.get('/check', (req, res, next) => {
 
-        res.send('Content Visible').end();
+        res.send('Content Visible.  You are able').end();
       });
 
       // log all errors to disk

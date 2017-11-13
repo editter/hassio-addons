@@ -1,11 +1,11 @@
 {
   "name": "life360",
-  "version": "1.7",
+  "version": "0.0.1",
   "slug": "life360",
   "description": "Life 360 addon for getting locaiton data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
   "startup": "application",
-  "webui": "[PROTO:ssl]://[HOST]:[PORT:8081]",
+  "webui": "[PROTO:ssl]://[HOST]:[PORT:8081]/check",
   "boot": "auto",
   "host_network": false,
   "map": ["ssl"],
@@ -23,8 +23,7 @@
     "keyFile": "privkey.pem",
     "life360ReturnHost": "",
     "life360User": "",
-    "life360Password": "",
-    "life360CircleNames": []
+    "life360Password": ""
   },
   "schema": {
     "mqttHost": "str",
@@ -37,7 +36,6 @@
     "keyFile": "str",
     "life360ReturnHost": "str",
     "life360User": "str",
-    "life360Password": "str",
-    "life360CircleNames": ["str"]
+    "life360Password": "str"
   }
 }
