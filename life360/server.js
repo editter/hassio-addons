@@ -68,7 +68,7 @@ function loadSavedState(defaults) {
   try {
     output = jsonfile.readFileSync(STATE_FILE);
   } catch (ex) {
-    winston.info("No previous state found, continuing " + ex.message);
+    winston.info("No previous state found, continuing.");
 
     output = defaults;
   }
@@ -138,13 +138,13 @@ async function refreshToken() {
 function formatLocation(input) {
   //  {"longitude": 1.0,"gps_accuracy": 60,"latitude": 2.0,"battery_level": 99.9}
   return {
-    id: input.id,
-    longitude: input.location.longitude,
-    latitude: input.location.latitude,
-    gps_accuracy: input.location.accuracy,
-    battery_level: input.location.battery,
+    longitude: parseFloat(input.location.longitude),
+    latitude: parseFloat(input.location.latitude),
+    gps_accuracy: parseInt(input.location.accuracy),
+    battery_level: parseInt(input.location.battery),
+    is_intransit: parseInt(input.location.inTransit),
     short_address: input.location.shortAddress,
-    is_intransit: input.location.inTransit,
+    id: input.id,
     name: input.firstName
   }
 }
@@ -282,8 +282,21 @@ async.series([
       });
 
       app.get('/check', (req, res, next) => {
-
-        res.send('Content Visible.  You are able').end();
+        let output = "Life 360 Plugin";
+        output += "<h3>Places</h3><br />"
+        output += JSON.stringify(state.places.map(x => new Object({
+          name: x.name,
+          latitude: x.latitude,
+          longitude: x.longitude,
+          radius: x.radius
+        })), null, 4);
+        output += "<h3>Circles</h3><br />"
+        output += JSON.stringify(state.circles.map(x => new Object({
+          name: x.name
+        })), null, 4);
+        output += "<h3>Circles</h3><br />"
+        output += JSON.stringify(state.members.map(x => formatLocation(x)), null, 4);
+        res.send(output).end();
       });
 
       // log all errors to disk
