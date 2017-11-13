@@ -7,20 +7,14 @@
 const winston = require('winston'),
   express = require('express'),
   https = require('https'),
-  // expressJoi = require('express-joi-validator'),
   expressWinston = require('express-winston'),
   bodyparser = require('body-parser'),
   mqtt = require('mqtt'),
   async = require('async'),
   path = require('path'),
-  // rl = require('url'),
-  // joi = require('joi'),
-  // aml = require('js-yaml'),
   jsonfile = require('jsonfile'),
   fs = require('fs'),
   Axios = require('axios');
-// import async from 'async';
-// import Axios from 'axios';
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
@@ -54,12 +48,13 @@ winston.add(winston.transports.File, {
   filename: EVENTS_LOG,
   json: false
 });
-const url = config.mqttHost.includes('://') ? config.mqttHost : `mqtt://${config.mqttHost}`;
+const url = config.mqtt_host.includes('://') ? config.mqtt_host : `mqtt://${config.mqtt_host}`;
 
 const app = express(),
-  client = mqtt.connect(`${url}:${config.mqttPort}`, {
-    username: config.mqttUsername,
-    password: config.mqttPassword
+  isProd = process.env.IS_PROD === 'true',
+  client = mqtt.connect(`${url}:${config.mqtt_port}`, {
+    username: config.mqtt_username,
+    password: config.mqtt_password
   });
 
 
@@ -85,8 +80,8 @@ async function refreshToken() {
   };
   const authResponse = await Axios.post("https://api.life360.com/v3/oauth2/token.json", {
     grant_type: "password",
-    username: config.life360User,
-    password: config.life360Password
+    username: config.life360_user,
+    password: config.life360_password
   }, headers);
 
   if (authResponse.data.access_token) {
@@ -120,9 +115,9 @@ async function refreshToken() {
       placesResponse.data.places.forEach(x => state.places.push(x));
     }
 
-    if (config.life360ReturnHost && config.life360ReturnHost.length > 0) {
+    if (config.host_url && config.host_url.length > 0) {
       await Axios.delete(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, headers);
-      const returnUrl = config.life360ReturnHost + ":" + config.life360ReturnPort + "/webhook";
+      const returnUrl = config.host_url + "/webhook";
       const webhookResponse = await Axios.post(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, {
         url: returnUrl
       }, headers);
@@ -225,7 +220,7 @@ async.series([
       });
 
     },
-    function configureCron(next) {
+    function configurePolling(next) {
       winston.info("Configuring auto update");
 
       // save current state every 15 minutes
@@ -250,19 +245,7 @@ async.series([
       }));
 
       // webhook event from life360
-      app.all("/webhook", (req, res) => {
-        const topic = `/${config.preface}/location-change`;
-        const data = req.body;
-        winston.info("Incoming message from Life360 Webhook: %s", JSON.stringify(data));
-        state.queueHistory[topic] = data;
-        client.publish(topic, JSON.stringify(data), {
-          retain: true
-        }, () => {
-          res.send({
-            status: "OK"
-          });
-        });
-      });
+      app.all("/webhook", (req, res) => refreshState());
 
       app.all("/get-recent", (req, res) => {
         const data = req.body;
@@ -284,18 +267,24 @@ async.series([
       app.get('/check', (req, res, next) => {
         let output = "Life 360 Plugin";
         output += "<h3>Places</h3><br />"
+        output += "<pre><code>";
         output += JSON.stringify(state.places.map(x => new Object({
           name: x.name,
           latitude: x.latitude,
           longitude: x.longitude,
           radius: x.radius
         })), null, 4);
+        output += "</pre></code>";
         output += "<h3>Circles</h3><br />"
+        output += "<pre><code>";
         output += JSON.stringify(state.circles.map(x => new Object({
           name: x.name
         })), null, 4);
+        output += "</pre></code>";
         output += "<h3>Circles</h3><br />"
+        output += "<pre><code>";
         output += JSON.stringify(state.members.map(x => formatLocation(x)), null, 4);
+        output += "</pre></code>";
         res.send(output).end();
       });
 
@@ -314,23 +303,26 @@ async.series([
         winston.error(err);
 
         res.status(500).send({
-
           errorMessage: 'An unhandled error occured'
-
         });
       });
-      if (config.certFile.length > 0 && config.keyFile.length > 0) {
-        winston.info('Certificate files found, listing via https');
+
+      if (isProd && (config.cert_file.length === 0 && config.key_file.length === 0)) {
+        winston.error('SSL Certs are required because this addon receives data from a third party so we want their data safely');
+        process.exit(1);
+      } else if (!isProd) {
+        winston.info('NO certificate files found, listing via http');
+        app.listen(PORT, next);
+      } else {
+        winston.info('Listing via https');
         const options = {
-          cert: fs.readFileSync(path.join('/ssl/', config.certFile)),
-          key: fs.readFileSync(path.join('/ssl/', config.keyFile))
+          cert: fs.readFileSync(path.join('/ssl/', config.cert_file)),
+          key: fs.readFileSync(path.join('/ssl/', config.key_file))
         };
         https.createServer(options, app).listen(PORT, next);
 
-      } else {
-        winston.info('NO certificate files found, listing via http');
-        app.listen(PORT, next);
       }
+
     }
   ],
   (error) => {

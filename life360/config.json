@@ -5,7 +5,7 @@
   "description": "Life 360 addon for getting locaiton data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
   "startup": "application",
-  "webui": "[PROTO:ssl]://[HOST]:[PORT:8081]/check",
+  "webui": "https://[HOST]:[PORT:8081]/check",
   "boot": "auto",
   "host_network": false,
   "map": ["ssl"],
@@ -13,29 +13,27 @@
     "8081/tcp": 8081
   },
   "options": {
-    "mqttHost": "172.17.0.1",
-    "mqttPort": 1883,
+    "mqtt_host": "127.0.0.1",
+    "mqtt_port": 1883,
+    "mqtt_username": "",
+    "mqtt_password": "",
     "preface": "life360",
-    "mqttUsername": "",
-    "mqttPassword": "",
-    "ssl": true,
-    "certFile": "fullchain.pem",
-    "keyFile": "privkey.pem",
-    "life360ReturnHost": "",
-    "life360User": "",
-    "life360Password": ""
+    "cert_file": "fullchain.pem",
+    "key_file": "privkey.pem",
+    "host_url": "",
+    "life360_user": "",
+    "life360_password": ""
   },
   "schema": {
-    "mqttHost": "str",
-    "mqttPort": "int",
+    "mqtt_host": "str",
+    "mqtt_port": "int",
+    "mqtt_username": "str",
+    "mqtt_password": "str",
     "preface": "str",
-    "mqttUsername": "str",
-    "mqttPassword": "str",
-    "ssl": "bool",
-    "certFile": "str",
-    "keyFile": "str",
-    "life360ReturnHost": "str",
-    "life360User": "str",
-    "life360Password": "str"
+    "cert_file": "str",
+    "key_file": "str",
+    "host_url": "str",
+    "life360_user": "str",
+    "life360_password": "str"
   }
 }
