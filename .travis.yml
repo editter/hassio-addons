@@ -10,5 +10,5 @@ env:
 script:
   - docker login -u $DOCKER_USER -p $DOCKER_PWD
   # - ./build.sh $ADDON
-  - docker run --rm --privileged -v ~/.docker:/root/.docker homeassistant/amd64-builder --all -t $ADDON -r https://github.com/editter/hassio-addons -b master -d editter/hassio-addons
-
+  - docker run --rm --privileged -v ~/.docker:/root/.docker homeassistant/amd64-builder --addon --all -t $ADDON -r https://github.com/editter/hassio-addons -b master -d editter
+#editter/hassio-addons
