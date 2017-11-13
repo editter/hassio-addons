@@ -9,6 +9,7 @@
   "boot": "auto",
   "host_network": false,
   "map": ["ssl"],
+  "image": "editter/life360-{arch}",
   "ports": {
     "8081/tcp": 8081
   },
