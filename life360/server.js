@@ -139,7 +139,7 @@ function formatLocation(input) {
     battery_level: parseInt(input.location.battery),
     is_intransit: parseInt(input.location.inTransit),
     short_address: input.location.shortAddress,
-    id: input.id,
+    // id: input.id,
     name: input.firstName
   }
 }
@@ -245,7 +245,10 @@ async.series([
       }));
 
       // webhook event from life360
-      app.all("/webhook", (req, res) => refreshState());
+      app.all("/webhook", (req, res) => {
+        winston.info('webhook call received');
+        refreshState();
+      });
 
       app.all("/get-recent", (req, res) => {
         const data = req.body;
