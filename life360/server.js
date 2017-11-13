@@ -24,7 +24,7 @@ const winston = require('winston'),
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
-const CONFIG_DIR = process.env.CONFIG_DIR || '/data',
+const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   STATE_FILE = path.join(CONFIG_DIR, 'state.json'),
   EVENTS_LOG = path.join(CONFIG_DIR, 'events.log'),
   ACCESS_LOG = path.join(CONFIG_DIR, "access.log"),
@@ -34,7 +34,7 @@ const CONFIG_DIR = process.env.CONFIG_DIR || '/data',
   PORT = 8081;
 
 
-let config = jsonfile.readFileSync(CONFIG_DIR),
+let config = jsonfile.readFileSync(OPTIONS),
   state = loadSavedState({
     savedToken: null,
     circles: [
