@@ -3,12 +3,11 @@ services:
   - docker
 before_install:
   - sudo apt-get install jq
-  - wget https://raw.githubusercontent.com/bestlibre/hassio-addons/master/build.sh -O build.sh
-  - chmod u+x build.sh
-  - wget https://raw.githubusercontent.com/olivierguerriat/hassio-addons/master/create_hassio_addon.sh -O create_hassio_addon.sh
-  - chmod u+x create_hassio_addon.sh
+  - docker pull homeassistant/amd64-builder
 env:
   - ADDON="life360"
 script:
   - docker login -u $DOCKER_USER -p $DOCKER_PWD
-  - ./build.sh $ADDON
+  # - ./build.sh $ADDON
+  - $ docker run --rm --privileged -v ~/.docker:/root/.docker homeassistant/amd64-builder --all -t addon-folder -r https://github.com/editter/hassio-addons -b master -d "editter"
+
