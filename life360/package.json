@@ -13,18 +13,26 @@
   "author": "Eric Ditter",
   "license": "ISC",
   "dependencies": {
-    "async": "^1.5.2",
-    "axios": "^0.17.0",
-    "body-parser": "^1.14.1",
-    "express": "^4.13.3",
-    "express-winston": "^1.2.0",
-    "jsonfile": "^2.2.3",
-    "mqtt": "^1.7.0",
-    "winston": "^2.0.0"
+    "alexa-app": "^4.2.0",
+    "async": "^2.6.0",
+    "axios": "^0.17.1",
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "express-winston": "^2.4.0",
+    "guid": "0.0.12",
+    "jsonfile": "^4.0.0",
+    "mqtt": "^2.14.0",
+    "winston": "^2.4.0"
   },
   "devDependencies": {
-    "eslint": "^4.10.0",
-    "jshint": "^2.9.5",
-    "jshint-esnext": "^2.7.0-3"
+    "@types/async": "^2.0.45",
+    "@types/axios": "^0.14.0",
+    "@types/express": "^4.0.39",
+    "@types/guid": "^1.0.0",
+    "@types/jsonfile": "^4.0.1",
+    "@types/node": "^8.0.51",
+    "@types/winston": "^2.3.7",
+    "tslint": "^5.8.0",
+    "typescript": "^2.6.1"
   }
 }
