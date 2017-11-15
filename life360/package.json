@@ -1,11 +1,12 @@
 {
   "name": "life360-addon",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "tsc && node server.js",
+    "build": "tsc"
   },
   "engines": {
     "node": ">=8.0"
@@ -13,7 +14,6 @@
   "author": "Eric Ditter",
   "license": "ISC",
   "dependencies": {
-    "alexa-app": "^4.2.0",
     "async": "^2.6.0",
     "axios": "^0.17.1",
     "body-parser": "^1.18.2",

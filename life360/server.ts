@@ -14,11 +14,10 @@ import * as async from 'async';
 import * as jsonfile from 'jsonfile';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as Axios from 'axios';
+import Axios from 'axios';
 import { Request, NextFunction, json } from 'express';
 import { Response } from 'express-serve-static-core';
 import * as guid from 'guid';
-import { app as AlexaApp, request as AlexaRequest, response as AlexaResponse } from 'alexa-app';
 
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
@@ -31,8 +30,8 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   CURRENT_VERSION: string = jsonfile.readFileSync(path.join('package.json')).version,
   isProd = process.env.IS_PROD === 'true',
   app = express(),
-  alexaApp = new AlexaApp('alexa'),
-  PORT = 8081;
+  PORT = 8081,
+  baseUrl = 'https://api.life360.com/v3';
 
 
 let config = jsonfile.readFileSync(OPTIONS_FILE) as {
@@ -72,7 +71,11 @@ const url = config.mqtt_host.includes('://') ? config.mqtt_host : `mqtt://${conf
 
 function loadSavedState<T>(defaults: T): T {
   try {
-    return jsonfile.readFileSync(STATE_FILE);
+    const savedState = jsonfile.readFileSync(STATE_FILE);
+    if (savedState.CURRENT_VERSION !== CURRENT_VERSION) {
+      return defaults;
+    }
+    return savedState;
   } catch (ex) {
     winston.info("No previous state found, setting to defaults.");
     return defaults;
@@ -87,7 +90,7 @@ async function refreshToken() {
       Authorization: "basic " + baseAuthKey
     }
   };
-  const authResponse = await Axios.post<{ access_token: string, token_type: string, errorMessage?: string }>("https://api.life360.com/v3/oauth2/token.json", {
+  const authResponse = await Axios.post<{ access_token: string, token_type: string, errorMessage?: string }>(`${baseUrl}/oauth2/token.json`, {
     grant_type: "password",
     username: config.life360_user,
     password: config.life360_password
@@ -102,7 +105,7 @@ async function refreshToken() {
   headers.headers = {
     Authorization: state.saved_token
   };
-  const circleResponse = await Axios.get<{ circles: Circle[], errorMessage?: string }>("https://api.life360.com/v3/circles.json", headers);
+  const circleResponse = await Axios.get<{ circles: Circle[], errorMessage?: string }>(`${baseUrl}/circles.json`, headers);
   if (Array.isArray(circleResponse.data.circles)) {
     state.circles = [];
     circleResponse.data.circles.forEach(circ => {
@@ -121,15 +124,15 @@ async function refreshToken() {
     state.places = [];
 
     async.forEach(state.circles, async (circ, callback) => {
-      const placesResponse = await Axios.get<{ places: Place[], errorMessage: string }>(`https://api.life360.com/v3/circles/${circ.id}/places.json`, headers);
+      const placesResponse = await Axios.get<{ places: Place[], errorMessage: string }>(`${baseUrl}/circles/${circ.id}/places.json`, headers);
       if (Array.isArray(placesResponse.data.places)) {
         placesResponse.data.places.forEach(x => state.places.push(x));
       }
 
       if (config.host_url && config.host_url.length > 0) {
-        await Axios.delete(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, headers);
+        await Axios.delete(`${baseUrl}/circles/${circ.id}/webhook.json`, headers);
         const returnUrl = config.host_url + "/webhook?access_token=" + state.access_token;
-        const webhookResponse = await Axios.post(`https://api.life360.com/v3/circles/${circ.id}/webhook.json`, {
+        const webhookResponse = await Axios.post(`${baseUrl}/circles/${circ.id}/webhook.json`, {
           url: returnUrl
         }, headers);
 
@@ -160,7 +163,7 @@ function formatLocation(input: Member) {
     gps_accuracy: parseInt(input.location.accuracy),
     battery_level: parseInt(input.location.battery),
     is_intransit: parseInt(input.location.inTransit),
-    address1: input.location.address1,
+    address: input.location.address1,
     name: input.firstName
   }
 }
@@ -179,7 +182,10 @@ async function refreshState() {
     queueData.forEach(msg => {
       const userTopic = `${topic}/${msg.name}`;
       winston.info('Message was written to ' + userTopic);
-      client.publish(userTopic, JSON.stringify(msg), { qos: 1, retain: true });
+      client.publish(userTopic, JSON.stringify(msg), {
+        qos: 1,
+        retain: true
+      });
     });
 
   } catch (err) {
@@ -198,10 +204,9 @@ async function getData() {
         Authorization: state.saved_token || 'un-auth-request'
       }
     };
-
     let results: Member[] = [];
     async.forEach(state.circles, (circ, callback) => {
-      Axios.get<{ members: Member[] }>(`https://api.life360.com/v3/circles/${circ.id}/members.json`, headers)
+      Axios.get<{ members: Member[] }>(`${baseUrl}/circles/${circ.id}/members.json`, headers)
         .then(membersResponse => {
           membersResponse.data.members.forEach(x => results.push(x));
           callback();
@@ -245,39 +250,6 @@ async.series([
     setInterval(refreshState, 15 * 60 * 1000);
     refreshState();
     process.nextTick(next);
-  },
-  function alexaSkill(next) {
-    winston.info("Configuring alexa skill");
-    alexaApp.express({ expressApp: app, debug: true });
-    alexaApp.pre = (request, response, type) => {
-      winston.info(JSON.stringify(request.getSession().details));
-    }
-
-    alexaApp.intent('GetPosition', {
-      slots: { "NAME": "AMAZON.US_FIRST_NAME" },
-      utterances: [
-        "where is {NAME}",
-        "where is {NAME} right now",
-        "what is the location of {NAME}",
-      ]
-    }, (request, response) => {
-      const slotName = request.slot('NAME')
-      winston.info(`Incoming request for alexa location name='${name}'`);
-      refreshState();
-      const recent = state.members.map(x => formatLocation(x)).filter(x => x.name === slotName);
-      let message = '';
-      if (recent.length > 0) {
-        // respond with name is at recent[0].short_address
-        const person = recent[0];
-        message = `${slotName} is ${person.is_intransit === 0 ? 'moving near' : 'at'} ${person.address1}`;
-      } else {
-        // respond with I couldnt find name
-        message = `I could not find ${slotName}`
-      }
-      response.say(message);
-    });
-
-    next();
   },
   function setupApp(next) {
     winston.info("Configuring server");
@@ -328,10 +300,6 @@ async.series([
       output += "<pre><code>";
       output += JSON.stringify(state.members.map(x => formatLocation(x)), null, 4);
       output += "</code></pre>";
-      output += "<h3>Alexa Skill Builder</h3><br />";
-      output += "<pre><code>";
-      output += JSON.stringify(alexaApp.schemas.skillBuilder(), null, 4);
-      output += "</code></pre>";
       res.send(output).end();
     });
 
@@ -355,7 +323,7 @@ async.series([
     });
 
     if (isProd === true && (config.cert_file.length === 0 || config.key_file.length === 0)) {
-      next('SSL Certs are required because this addon receives data from a third party so we want their data safely');
+      next('cert_file and key_file are required because this addon receives data from a third party so we want their data safely');
 
     } else if (isProd === false) {
       winston.info('NO certificate files found, listing via http');
