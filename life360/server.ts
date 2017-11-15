@@ -17,8 +17,7 @@ import * as path from 'path';
 import Axios from 'axios';
 import { Request, NextFunction, json } from 'express';
 import { Response } from 'express-serve-static-core';
-import * as guid from 'guid';
-
+import { v4 } from 'uuid';
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
 const CONFIG_DIR = process.env.CONFIG_DIR || './data',
@@ -52,7 +51,7 @@ let config = jsonfile.readFileSync(OPTIONS_FILE) as {
     queue_history: {} as { [prop: string]: any },
     members: [] as Member[],
     places: [] as Place[],
-    access_token: guid.raw(),
+    access_token: v4(),
     CURRENT_VERSION
   });
 
@@ -268,12 +267,14 @@ async.series([
     }));
 
     // webhook event from life360
-    app.all("/webhook", (req, res) => {
-      winston.info('Webhook call received' + JSON.stringify(req.params) + JSON.stringify(req.headers));
+    app.all("/webhook", async (req, res) => {
+      winston.info('Test From WebHook');
+      winston.info('Webhook call received\n<br />' + JSON.stringify(req.query) + JSON.stringify(req.params) + JSON.stringify(req.headers));
       // if (req.headers["access_token"] === state.access_token) {
       //   return res.status(401).send({ errorMessage: "Invalid access token" }).end();
       // }
-      refreshState();
+      await refreshState();
+      res.send("ok").end();
     });
 
 

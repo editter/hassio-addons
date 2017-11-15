@@ -12,3 +12,7 @@ script:
   # - ./build.sh $ADDON
   - docker run --rm --privileged -v ~/.docker:/root/.docker homeassistant/amd64-builder --addon --all -t $ADDON -r https://github.com/editter/hassio-addons -b master -d editter
 #editter/hassio-addons
+notifications:
+  urls:
+    - https://hooks.microbadger.com/images/editter/life360-amd64/pWG0RA27A0N-93zC8NY7HleKB08=
+
