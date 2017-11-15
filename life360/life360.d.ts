@@ -1,3 +1,4 @@
+import { Request } from 'express';
 
 
 export interface Features {
@@ -106,5 +107,28 @@ export interface Place {
   typeLabel?: any;
 }
 
+export interface Life360Request {
+  errorMessage?: string;
+  status?: number;
+}
 
+export interface PlacesRequest extends Life360Request {
+  places: Place[];
+}
 
+export interface PlacesRequest extends Life360Request {
+  places: Place[];
+}
+
+export interface CirclesRequest extends Life360Request {
+  circles: Circle[];
+}
+
+export interface MembersRequest extends Life360Request {
+  members: Member[];
+}
+
+export interface TokenRequest extends Life360Request {
+  access_token: string;
+  token_type: string;
+}
