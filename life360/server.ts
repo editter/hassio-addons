@@ -15,8 +15,7 @@ import * as jsonfile from 'jsonfile';
 import * as fs from 'fs';
 import * as path from 'path';
 import Axios from 'axios';
-import { Request, NextFunction, json } from 'express';
-import { Response } from 'express-serve-static-core';
+import { Response, Request, NextFunction, json } from 'express';
 import { v4 } from 'uuid';
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
@@ -264,41 +263,44 @@ async.series([
 
     // webhook event from life360
     app.all('/webhook', async (req, res) => {
-      winston.info('Test From WebHook');
-      winston.info('Webhook call received\n<br />' + JSON.stringify(req.query) + JSON.stringify(req.params) + JSON.stringify(req.headers));
-      // if (req.headers["access_token"] === state.access_token) {
-      //   return res.status(401).send({ errorMessage: "Invalid access token" }).end();
-      // }
-      await refreshState();
-      res.send('ok').end();
+      if (req.params.access_token === state.access_token) {
+        winston.info('Webhook call received');
+
+        await refreshState();
+        res.send('ok').end();
+      } else {
+        winston.info('Webhook call was denied');
+        res.status(403).send('error').end();
+
+      }
     });
 
 
 
-    app.get('/check', (req, res) => {
-      let output = 'Life 360 Plugin';
-      output += '<style>h3{margin-bottom:0}</style>';
-      output += '<h3>Places</h3><br />';
-      output += '<pre><code>';
-      output += JSON.stringify(state.places.map(x => new Object({
-        name: x.name,
-        latitude: x.latitude,
-        longitude: x.longitude,
-        radius: x.radius
-      })), null, 4);
-      output += '</code></pre>';
-      output += '<h3>Circles</h3><br />';
-      output += '<pre><code>';
-      output += JSON.stringify(state.circles.map(x => new Object({
-        name: x.name
-      })), null, 4);
-      output += '</code></pre>';
-      output += '<h3>Members</h3><br />';
-      output += '<pre><code>';
-      output += JSON.stringify(state.members.map(x => formatLocation(x)), null, 4);
-      output += '</code></pre>';
-      res.send(output).end();
-    });
+    // app.get('/check', (req, res) => {
+    //   let output = 'Life 360 Plugin';
+    //   output += '<style>h3{margin-bottom:0}</style>';
+    //   output += '<h3>Places</h3><br />';
+    //   output += '<pre><code>';
+    //   output += JSON.stringify(state.places.map(x => new Object({
+    //     name: x.name,
+    //     latitude: x.latitude,
+    //     longitude: x.longitude,
+    //     radius: x.radius
+    //   })), null, 4);
+    //   output += '</code></pre>';
+    //   output += '<h3>Circles</h3><br />';
+    //   output += '<pre><code>';
+    //   output += JSON.stringify(state.circles.map(x => new Object({
+    //     name: x.name
+    //   })), null, 4);
+    //   output += '</code></pre>';
+    //   output += '<h3>Members</h3><br />';
+    //   output += '<pre><code>';
+    //   output += JSON.stringify(state.members.map(x => formatLocation(x)), null, 4);
+    //   output += '</code></pre>';
+    //   res.send(output).end();
+    // });
 
     // log all errors to disk
     app.use(expressWinston.errorLogger({
@@ -320,7 +322,7 @@ async.series([
     });
 
     if (isProd === true && (config.cert_file.length === 0 || config.key_file.length === 0)) {
-      next('cert_file and key_file are required because this addon receives data from a third party so we want their data safely');
+      next('cert_file and key_file are required');
 
     } else if (isProd === false) {
       winston.info('NO certificate files found, listing via http');
