@@ -17,7 +17,7 @@
     "mqtt_port": 1883,
     "mqtt_username": "",
     "mqtt_password": "",
-    "preface": "life360",
+    "preface": "/life360",
     "cert_file": "fullchain.pem",
     "key_file": "privkey.pem",
     "host_url": "https://mySite.com:8081",

@@ -163,7 +163,7 @@ function formatLocation(input: Member) {
 }
 
 async function refreshState() {
-  const topic = `/${config.preface}/location`;
+  const topic = `${config.preface}/location`;
 
   try {
     state.members = await getData();
@@ -263,7 +263,7 @@ async.series([
 
     // webhook event from life360
     app.all('/webhook', async (req, res) => {
-      if (req.params.access_token === state.access_token) {
+      if (req.query.access_token === state.access_token) {
         winston.info('Webhook call received');
 
         await refreshState();
