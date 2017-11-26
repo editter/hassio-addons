@@ -14,6 +14,10 @@ script:
 #editter/hassio-addons
 notifications:
   webhooks:
+<<<<<<< HEAD
     urls:
       - https://hooks.microbadger.com/images/editter/life360-amd64/pWG0RA27A0N-93zC8NY7HleKB08=
+=======
+    - https://hooks.microbadger.com/images/editter/life360-amd64/pWG0RA27A0N-93zC8NY7HleKB08=
+>>>>>>> dev
 

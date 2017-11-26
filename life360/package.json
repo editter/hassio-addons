@@ -19,18 +19,17 @@
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
     "express-winston": "^2.4.0",
-    "guid": "0.0.12",
+    "uuid": "^3.1.0",
     "jsonfile": "^4.0.0",
     "mqtt": "^2.14.0",
     "winston": "^2.4.0"
   },
   "devDependencies": {
     "@types/async": "^2.0.45",
-    "@types/axios": "^0.14.0",
     "@types/express": "^4.0.39",
-    "@types/guid": "^1.0.0",
     "@types/jsonfile": "^4.0.1",
     "@types/node": "^8.0.51",
+    "@types/uuid": "^3.4.3",
     "@types/winston": "^2.3.7",
     "tslint": "^5.8.0",
     "typescript": "^2.6.1"
