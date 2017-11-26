@@ -32,7 +32,7 @@ device_tracker:
 
 ### Releases
 
-#### 0.0.3
+#### 0.0.4
 
 - Made preface the start of the MQTT topic and removed the slash in code
 - Added some minor security to the webhook
