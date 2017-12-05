@@ -6,7 +6,7 @@ ENV CONFIG_DIR=/data
 ENV IS_PROD=true
 EXPOSE 8081
 
-RUN apk add --no-cache nodejs-current nodejs-npm
+RUN apk add --no-cache nodejs nodejs-npm
 
 WORKDIR /life360
 
