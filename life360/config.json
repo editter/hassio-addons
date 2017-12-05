@@ -1,6 +1,6 @@
 {
   "name": "life360",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "slug": "life360",
   "description": "Life 360 addon for getting location data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
@@ -22,7 +22,8 @@
     "key_file": "privkey.pem",
     "host_url": "https://mySite.com:8081",
     "life360_user": "",
-    "life360_password": ""
+    "life360_password": "",
+    "refresh_minutes": 1
   },
   "schema": {
     "mqtt_host": "str",
@@ -34,6 +35,7 @@
     "key_file": "str",
     "host_url": "str",
     "life360_user": "str",
-    "life360_password": "str"
+    "life360_password": "str",
+    "refresh_minutes": "int"
   }
 }
