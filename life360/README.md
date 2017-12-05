@@ -2,11 +2,7 @@
 
 Presence detection using the service [Life360](https://life360.com)
 
-## FYI
-
-- Life360 doesn't provide any documentation on their API so I followed their SmartThings plugin to try to fit their standards.  They clear out all existing webhooks in their code so I did the same.  This means if you have any other applications being triggered from Life360 directly they will be removed (or at least I assume).  If you don't want that to use webhooks here then don't configure host_url
-
-- This plugin forces you to have https so the cert and key files are required.  Home assistant makes it very easy to do so this shouldn't be a problem.
+## Config Parameters
 
 | Param              | Description                                                                                                                           |
 |--------------------|---------------------------------------------------------------------------------------------------------------------------------------|
@@ -20,6 +16,7 @@ Presence detection using the service [Life360](https://life360.com)
 | host_url           | Your public hostname used by Life360 location triggers Example: `https://my-assistant.duckdns.org:8081`                               |
 | life360_user       | Life360 username                                                                                                                      |
 | life360_password   | Life360 password                                                                                                                      |
+| refresh_minutes    | How often the addon will update the data                                                                                               |
 
 ## configuration.yaml
 
@@ -30,9 +27,17 @@ device_tracker:
       my_phone: {preface}/location/{life360 first name}
 ```
 
-### Releases
+If you want Life360 to update when you enter or leave a Life360 Place open up your router's port for the addon (default is 8081).  To test if you have it open go to `{host_url}/webhook`
 
-#### 0.0.4
+## Releases
+
+### 0.0.5
+
+- Added refresh_minutes setting for quicker refresh rates
+- Removed file logging (not sure if they are viewable in Hass.io)
+- Minor bug fixes
+
+### 0.0.4
 
 - Made preface the start of the MQTT topic and removed the slash in code
 - Added some minor security to the webhook

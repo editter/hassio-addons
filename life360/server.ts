@@ -1,5 +1,7 @@
 /**
- *
+ * @author Eric Ditter
+ * @file Hassio addon that polls Life360 API for location changes as
+ *       well as listens via webhook for life360 initiated changes.
  */
 
 import { Circle, Member, Place, PlacesRequest, CirclesRequest, TokenRequest, MembersRequest } from './life360';
@@ -22,9 +24,9 @@ const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2Z
 const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   STATE_FILE = path.join(CONFIG_DIR, 'state.json'),
   OPTIONS_FILE = path.join(CONFIG_DIR, 'options.json'),
-  EVENTS_LOG = path.join(CONFIG_DIR, 'events.log'),
-  ACCESS_LOG = path.join(CONFIG_DIR, 'access.log'),
-  ERROR_LOG = path.join(CONFIG_DIR, 'error.log'),
+  // EVENTS_LOG = path.join(CONFIG_DIR, 'events.log'),
+  // ACCESS_LOG = path.join(CONFIG_DIR, 'access.log'),
+  // ERROR_LOG = path.join(CONFIG_DIR, 'error.log'),
   CURRENT_VERSION: string = jsonfile.readFileSync(path.join('package.json')).version,
   isProd = process.env.IS_PROD === 'true',
   app = express(),
@@ -41,6 +43,7 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
     host_url: string;
     life360_user: string;
     life360_password: string;
+    refresh_minutes: number;
   },
   state = loadSavedState({
     saved_token: null as string | null,
@@ -58,10 +61,28 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
     port: config.mqtt_port,
   });
 
-winston.add(winston.transports.File, {
-  filename: EVENTS_LOG,
-  json: false
+winston.remove(winston.transports.Console);
+winston.add(winston.transports.Console, {
+  timestamp: () => {
+    const
+      date = new Date(),
+      // year = date.getFullYear(),
+      month = date.getMonth() + 1,
+      day = date.getDate(),
+      hour = date.getHours(),
+      minute = date.getMinutes(),
+      second = date.getSeconds(),
+      hourFormatted = hour % 12 || 12,
+      minuteFormatted = minute < 10 ? '0' + minute : minute,
+      morning = hour < 12 ? 'am' : 'pm';
+
+    return `${month}/${day} ${hourFormatted}:${minuteFormatted}:${second} ${morning}`;
+  }
 });
+// winston.add(winston.transports.File, {
+//   filename: EVENTS_LOG,
+//   json: false
+// });
 
 function loadSavedState<T>(defaults: T): T {
   try {
@@ -238,10 +259,11 @@ async.series([
 
   },
   function configurePolling(next) {
-    winston.info('Configuring auto update');
+    const interval = 60 * 1000 * config.refresh_minutes;
+    winston.info(`Configuring auto update for every ${interval} minutes`);
 
     // save current state every 15 minutes
-    setInterval(refreshState, 15 * 60 * 1000);
+    setInterval(refreshState, interval);
     refreshState();
     process.nextTick(next);
   },
@@ -252,25 +274,25 @@ async.series([
     app.use(bodyparser.json());
 
     // log all requests to disk
-    app.use(expressWinston.logger({
-      transports: [
-        new winston.transports.File({
-          filename: ACCESS_LOG,
-          json: false
-        })
-      ]
-    }));
+    // app.use(expressWinston.logger({
+    //   transports: [
+    //     new winston.transports.File({
+    //       filename: ACCESS_LOG,
+    //       json: false
+    //     })
+    //   ]
+    // }));
 
     // webhook event from life360
     app.all('/webhook', async (req, res) => {
       if (req.query.access_token === state.access_token) {
-        winston.info('Webhook call received');
+        winston.info('Webhook call received with valid access token');
 
         await refreshState();
         res.send('ok').end();
       } else {
-        winston.info('Webhook call was denied');
-        res.status(403).send('error').end();
+        winston.info('Webhook call was made with invalid access token');
+        res.send('Webhook is visible externally').end();
 
       }
     });
@@ -303,16 +325,15 @@ async.series([
     // });
 
     // log all errors to disk
-    app.use(expressWinston.errorLogger({
-      transports: [
-        new winston.transports.File({
-          filename: ERROR_LOG,
-          json: false
-        })
-      ]
-    }));
+    // app.use(expressWinston.errorLogger({
+    //   transports: [
+    //     new winston.transports.File({
+    //       filename: ERROR_LOG,
+    //       json: false
+    //     })
+    //   ]
+    // }));
 
-    // proper error messages with Joi
     app.use((err: any, req: Request, res: Response) => {
       winston.error(err);
 
@@ -325,7 +346,7 @@ async.series([
       next('cert_file and key_file are required');
 
     } else if (isProd === false) {
-      winston.info('NO certificate files found, listing via http');
+      winston.info('No certificate files found, listing via http');
       app.listen(PORT, next);
 
     } else {
