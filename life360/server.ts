@@ -260,7 +260,7 @@ async.series([
   },
   function configurePolling(next) {
     const interval = 60 * 1000 * config.refresh_minutes;
-    winston.info(`Configuring auto update for every ${interval} minutes`);
+    winston.info(`Configuring auto update for every ${config.refresh_minutes} minutes`);
 
     // save current state every 15 minutes
     setInterval(refreshState, interval);
