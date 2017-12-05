@@ -284,15 +284,15 @@ async.series([
     // }));
 
     // webhook event from life360
-    app.all('/webhook', async (req, res) => {
+    app.all('/webhook', async (req, res, n) => {
       if (req.query.access_token === state.access_token) {
         winston.info('Webhook call received with valid access token');
 
         await refreshState();
-        res.send('ok').end();
+        return res.send('ok').end();
       } else {
         winston.info('Webhook call was made with invalid access token');
-        res.send('Webhook is visible externally').end();
+        return res.send('Webhook is visible externally').end();
 
       }
     });
@@ -334,10 +334,10 @@ async.series([
     //   ]
     // }));
 
-    app.use((err: any, req: Request, res: Response) => {
+    app.use((err: any, req: Request, res: Response, n: NextFunction) => {
       winston.error(err);
 
-      res.status(500).send({
+      return res.status(500).send({
         errorMessage: 'An unhandled error occured'
       });
     });
