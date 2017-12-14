@@ -19,14 +19,13 @@ import * as path from 'path';
 import Axios from 'axios';
 import { Response, Request, NextFunction, json } from 'express';
 import { v4 } from 'uuid';
+// import { map } from 'async';
+import { MqttClient } from 'mqtt';
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
 
 const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   STATE_FILE = path.join(CONFIG_DIR, 'state.json'),
   OPTIONS_FILE = path.join(CONFIG_DIR, 'options.json'),
-  // EVENTS_LOG = path.join(CONFIG_DIR, 'events.log'),
-  // ACCESS_LOG = path.join(CONFIG_DIR, 'access.log'),
-  // ERROR_LOG = path.join(CONFIG_DIR, 'error.log'),
   CURRENT_VERSION: string = jsonfile.readFileSync(path.join('package.json')).version,
   isProd = process.env.IS_PROD === 'true',
   app = express(),
@@ -44,29 +43,43 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
     life360_user: string;
     life360_password: string;
     refresh_minutes: number;
+    process_type: 'MQTT' | 'HTTP',
+    user_device_map: [{ life360_name: string, known_devices_name: string }]
   },
   state = loadSavedState({
     saved_token: null as string | null,
     circles: [] as { id: string, name: string }[],
-    queue_history: {} as { [prop: string]: any },
+    history: {},
     members: [] as Member[],
     places: [] as Place[],
     access_token: v4(),
     CURRENT_VERSION
-  }),
-  url = config.mqtt_host.includes('://') ? config.mqtt_host : `mqtt://${config.mqtt_host}`,
-  client = mqtt.connect(`${url}`, {
+  });
+
+let client: MqttClient | null = null;
+config.process_type = <any>config.process_type.toUpperCase();
+if (config.process_type === 'MQTT') {
+  const url = config.mqtt_host.includes('://') ? config.mqtt_host : `mqtt://${config.mqtt_host}`;
+  client = mqtt.connect(url, {
     username: config.mqtt_username,
     password: config.mqtt_password,
     port: config.mqtt_port,
   });
+} else if (config.process_type === 'HTTP') {
+  if (!config.user_device_map || config.user_device_map.length === 0) {
+    winston.error(`When using HTTP you must have a value in user_device_map`);
+    process.exit(1);
+  }
+} else {
+  winston.error(`process_type must be either MQTT or HTTP. ${config.process_type} is invalid`);
+  process.exit(1);
+}
 
 winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, {
   timestamp: () => {
     const
       date = new Date(),
-      // year = date.getFullYear(),
       month = date.getMonth() + 1,
       day = date.getDate(),
       hour = date.getHours(),
@@ -79,10 +92,6 @@ winston.add(winston.transports.Console, {
     return `${month}/${day} ${hourFormatted}:${minuteFormatted}:${second} ${morning}`;
   }
 });
-// winston.add(winston.transports.File, {
-//   filename: EVENTS_LOG,
-//   json: false
-// });
 
 function loadSavedState<T>(defaults: T): T {
   try {
@@ -170,17 +179,33 @@ async function refreshToken() {
 
 }
 
-
 function formatLocation(input: Member) {
-  return {
-    longitude: parseFloat(input.location.longitude),
-    latitude: parseFloat(input.location.latitude),
-    gps_accuracy: parseInt(input.location.accuracy, 0),
-    battery_level: parseInt(input.location.battery, 0),
-    is_intransit: parseInt(input.location.inTransit, 0),
-    address: input.location.address1,
-    name: input.firstName
-  };
+  if (config.process_type === 'MQTT') {
+
+    return {
+      longitude: parseFloat(input.location.longitude),
+      latitude: parseFloat(input.location.latitude),
+      gps_accuracy: parseInt(input.location.accuracy, 0),
+      battery_level: parseInt(input.location.battery, 0),
+      is_intransit: parseInt(input.location.inTransit, 0),
+      address: input.location.address1,
+      name: input.firstName
+    };
+
+  } else if (config.process_type === 'HTTP') {
+
+    const user = config.user_device_map.filter(x => x.life360_name.toUpperCase() === input.firstName.toUpperCase());
+    return {
+      dev_id: user.length > 0 ? user[0].known_devices_name : input.firstName,
+      gps: [parseFloat(input.location.latitude), parseFloat(input.location.longitude)],
+      gps_accuracy: parseInt(input.location.accuracy, 0),
+      battery: parseInt(input.location.battery, 0),
+      name: input.firstName
+    };
+
+  }
+
+  throw Error('Invalid process_type');
 }
 
 async function refreshState() {
@@ -188,20 +213,27 @@ async function refreshState() {
 
   try {
     state.members = await getData();
-    const queueData = state.members.map(x => formatLocation(x));
-    state.queue_history[topic] = queueData;
+    const data = state.members.map(x => formatLocation(x));
+    state.history = data;
     jsonfile.writeFileSync(STATE_FILE, state, {
       spaces: 2
     });
+    if (config.process_type === 'MQTT') {
 
-    queueData.forEach(msg => {
-      const userTopic = `${topic}/${msg.name}`;
-      winston.info('Message was written to ' + userTopic);
-      client.publish(userTopic, JSON.stringify(msg), {
-        qos: 1,
-        retain: true
+      data.forEach(msg => {
+        if (client !== null) {
+          const userTopic = `${topic}/${msg.name}`;
+          winston.info('Message was written to ' + userTopic);
+          client.publish(userTopic, JSON.stringify(msg), {
+            qos: 1,
+            retain: true
+          });
+        }
       });
-    });
+    } else if (config.process_type === 'HTTP') {
+
+      await Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', data);
+    }
 
   } catch (err) {
     winston.error(err);
@@ -273,16 +305,6 @@ async.series([
     // accept JSON
     app.use(bodyparser.json());
 
-    // log all requests to disk
-    // app.use(expressWinston.logger({
-    //   transports: [
-    //     new winston.transports.File({
-    //       filename: ACCESS_LOG,
-    //       json: false
-    //     })
-    //   ]
-    // }));
-
     // webhook event from life360
     app.all('/webhook', async (req, res, n) => {
       if (req.query.access_token === state.access_token) {
@@ -296,8 +318,6 @@ async.series([
 
       }
     });
-
-
 
     // app.get('/check', (req, res) => {
     //   let output = 'Life 360 Plugin';
@@ -323,16 +343,6 @@ async.series([
     //   output += '</code></pre>';
     //   res.send(output).end();
     // });
-
-    // log all errors to disk
-    // app.use(expressWinston.errorLogger({
-    //   transports: [
-    //     new winston.transports.File({
-    //       filename: ERROR_LOG,
-    //       json: false
-    //     })
-    //   ]
-    // }));
 
     app.use((err: any, req: Request, res: Response, n: NextFunction) => {
       winston.error(err);
