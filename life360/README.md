@@ -1,29 +1,29 @@
-# Home Assistant - Life360
+# Home Assistant - Life360 addon
 
 Presence detection using the service [Life360](https://life360.com)
 
 ## General
 
-If you want Life360 to update when you enter or leave a Life360 Place open up your router's port for the addon (default is 8081).  To test if you have it open go to `{host_url}/webhook`
+If you want Life360 to update when you enter or leave a Life360 Place open up your router's port for the addon (default is 8081).  To test if you have it open go to `{host_url}/webhook` (ex. `https://my-assistant.duckdns.org:8081/webhook`)
 
 ## Config Parameters
 
 | Param              | Description                                                                                                                           |
 |--------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| process_type       | Options are MQTT or HTTP
-| mqtt_host          | MQTT broker host. Defaults to `mqtt://<mqtt_host>` but if you want to use another protocol use the full URL ex. `ws://examplehost.com` |
-| mqtt_port          | MQTT broker port                                                                                                                      |
-| mqtt_username      | MQTT broker login                                                                                                                     |
-| mqtt_password      | MQTT broker password                                                                                                                  |
-| preface            | Preface for MQTT topic                                                                                                                     |
+| process_type       | Used to determine how the data is pushed to home assistant.  Options are MQTT or HTTP
+| mqtt_host          | **(only used when process_type=MQTT)** MQTT broker host. Defaults to `mqtt://<mqtt_host>` but if you want to use another protocol use the full URL ex. `ws://examplehost.com` |
+| mqtt_port          | **(only used when process_type=MQTT)** MQTT broker port                                                                                                                      |
+| mqtt_username      | **(only used when process_type=MQTT)** MQTT broker login                                                                                                                     |
+| mqtt_password      | **(only used when process_type=MQTT)** MQTT broker password                                                                                                                  |
+| preface            | **(only used when process_type=MQTT)** Preface for MQTT topic                                                                                                                     |
 | cert_file          | SSL cert file                                                                                                                         |
 | key_file           | SSL key file                                                                                                                          |
-| host_url           | Your public hostname used by Life360 location triggers Example: `https://my-assistant.duckdns.org:8081`                               |
+| host_url           | Your public hostname used by Life360 location triggers. Example: `https://my-assistant.duckdns.org:8081`                               |
 | life360_user       | Life360 username                                                                                                                      |
 | life360_password   | Life360 password                                                                                                                      |
 | refresh_minutes    | How often the addon will update the data |
-| user_device_map.life360_name   |  the life360 first name|
-| user_device_map.known_devices_name   |  the dev_id in known_devices.yaml you want to update|
+| user_device_map.life360_name   |  **(only used when process_type=HTTP)** the life360 first name|
+| user_device_map.known_devices_name   |  **(only used when process_type=HTTP)** the dev_id in known_devices.yaml you want to update|
 
 ## Config Examles
 
