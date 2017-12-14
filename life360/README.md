@@ -62,8 +62,8 @@ eric_phone:
 device_tracker:
   - platform: mqtt_json
     devices:
-      #        {preface}/location/{life360 first name}
-      my_phone: life360/location/Eric
+      #          {preface}/location/{life360 first name}
+      eric_phone: life360/location/Eric
 ```
 
 ### Life360 addon options - HTTP
