@@ -31,6 +31,7 @@
     "life360_password": ""
   },
   "schema": {
+    "process_type": "str",
     "mqtt_host": "str",
     "mqtt_port": "int",
     "mqtt_username": "str",

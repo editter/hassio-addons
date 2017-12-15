@@ -27,7 +27,7 @@ If you want Life360 to update when you enter or leave a Life360 Place open up yo
 
 ## Config Examles
 
-#### known_devices.yaml
+### known_devices.yaml
 
 ```yaml
 eric_phone:

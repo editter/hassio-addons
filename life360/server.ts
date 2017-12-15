@@ -223,7 +223,7 @@ async function refreshState() {
       data.forEach(msg => {
         if (client !== null) {
           const userTopic = `${topic}/${msg.name}`;
-          winston.info('Message was written to ' + userTopic);
+          winston.info('MQTT Message was written to ' + userTopic);
           client.publish(userTopic, JSON.stringify(msg), {
             qos: 1,
             retain: true
@@ -231,9 +231,13 @@ async function refreshState() {
         }
       });
     } else if (config.process_type === 'HTTP') {
+      data.forEach(async msg => {
+        winston.info('HTTP Message sent for ' + msg.name);
+        Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg).catch(err => winston.error(err));
 
-      await Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', data);
+      });
     }
+
 
   } catch (err) {
     winston.error(err);
