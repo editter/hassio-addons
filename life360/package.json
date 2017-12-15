@@ -1,6 +1,6 @@
 {
   "name": "life360-addon",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "main": "server.js",
   "repository": "https://github.com/editter/hassio-addons/tree/master/life360",
@@ -22,14 +22,14 @@
     "express-winston": "^2.4.0",
     "uuid": "^3.1.0",
     "jsonfile": "^4.0.0",
-    "mqtt": "^2.14.0",
+    "mqtt": "^2.15.0",
     "winston": "^2.4.0"
   },
   "devDependencies": {
     "@types/async": "^2.0.45",
     "@types/express": "^4.0.39",
     "@types/jsonfile": "^4.0.1",
-    "@types/node": "^8.0.54",
+    "@types/node": "^8.5.1",
     "@types/uuid": "^3.4.3",
     "@types/winston": "^2.3.7",
     "tslint": "^5.8.0",

@@ -1,6 +1,6 @@
 {
   "name": "life360",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "slug": "life360",
   "description": "Life 360 addon for getting location data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
@@ -13,19 +13,25 @@
     "8081/tcp": 8081
   },
   "options": {
+    "process_type": "MQTT",
     "mqtt_host": "127.0.0.1",
     "mqtt_port": 1883,
     "mqtt_username": "",
     "mqtt_password": "",
-    "preface": "/life360",
+    "preface": "life360",
     "cert_file": "fullchain.pem",
     "key_file": "privkey.pem",
     "host_url": "https://mySite.com:8081",
+    "refresh_minutes": 1,
+    "user_device_map": [{
+      "life360_name": "John",
+      "known_devices_name": "john_phone"
+    }],
     "life360_user": "",
-    "life360_password": "",
-    "refresh_minutes": 1
+    "life360_password": ""
   },
   "schema": {
+    "process_type": "str",
     "mqtt_host": "str",
     "mqtt_port": "int",
     "mqtt_username": "str",
@@ -36,6 +42,10 @@
     "host_url": "str",
     "life360_user": "str",
     "life360_password": "str",
-    "refresh_minutes": "int"
+    "refresh_minutes": "int",
+    "user_device_map": [{
+      "life360_name": "str",
+      "known_devices_name": "str"
+    }]
   }
 }
