@@ -231,7 +231,7 @@ async function refreshState() {
         }
       });
     } else if (config.process_type === 'HTTP') {
-      data.forEach(async msg => {
+      data.forEach(msg => {
         winston.info('HTTP Message sent for ' + msg.name);
         Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg).catch(err => winston.error(err));
 

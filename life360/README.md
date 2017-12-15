@@ -93,7 +93,7 @@ device_tracker:
 
 ### 0.0.6
 
-- Added the option to use HTTP location tracking instead of forcing MQTT
+- Added the option to use HTTP for reporting the location instead of forcing MQTT. If you want to continue using MQTT there is no change required for you, just providing options for people.
 
 ### 0.0.5
 
