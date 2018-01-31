@@ -1,6 +1,6 @@
 {
   "name": "life360",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "slug": "life360",
   "description": "Life 360 addon for getting location data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",

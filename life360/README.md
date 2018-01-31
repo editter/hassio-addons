@@ -91,6 +91,11 @@ device_tracker:
 
 ## Releases
 
+### 0.0.7
+
+- Checked user location data to ensure it exists (in some cases it doesn't seem to get populated)
+- Added initial information on startup to help with debugging
+
 ### 0.0.6
 
 - Added the option to use HTTP for reporting the location instead of forcing MQTT. If you want to continue using MQTT there is no change required for you, just providing options for people.

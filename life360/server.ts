@@ -4,7 +4,7 @@
  *       well as listens via webhook for life360 initiated changes.
  */
 
-import { Circle, Member, Place, PlacesRequest, CirclesRequest, TokenRequest, MembersRequest } from './life360';
+import { Circle, Member, Place, PlacesRequest, CirclesRequest, TokenRequest, MembersRequest, Location } from './life360';
 
 import * as winston from 'winston';
 import * as express from 'express';
@@ -180,15 +180,19 @@ async function refreshToken() {
 }
 
 function formatLocation(input: Member) {
+  const location = input && input.location ? input.location : null;
+  if (!location) {
+    return null;
+  }
   if (config.process_type === 'MQTT') {
 
     return {
-      longitude: parseFloat(input.location.longitude),
-      latitude: parseFloat(input.location.latitude),
-      gps_accuracy: parseInt(input.location.accuracy, 0),
-      battery_level: parseInt(input.location.battery, 0),
-      is_intransit: parseInt(input.location.inTransit, 0),
-      address: input.location.address1,
+      longitude: parseFloat(location.longitude),
+      latitude: parseFloat(location.latitude),
+      gps_accuracy: parseInt(location.accuracy, 0),
+      battery_level: parseInt(location.battery, 0),
+      is_intransit: parseInt(location.inTransit, 0),
+      address: location.address1,
       name: input.firstName
     };
 
@@ -197,9 +201,9 @@ function formatLocation(input: Member) {
     const user = config.user_device_map.filter(x => x.life360_name.toUpperCase() === input.firstName.toUpperCase());
     return {
       dev_id: user.length > 0 ? user[0].known_devices_name : input.firstName,
-      gps: [parseFloat(input.location.latitude), parseFloat(input.location.longitude)],
-      gps_accuracy: parseInt(input.location.accuracy, 0),
-      battery: parseInt(input.location.battery, 0),
+      gps: [parseFloat(location.latitude), parseFloat(location.longitude)],
+      gps_accuracy: parseInt(location.accuracy, 0),
+      battery: parseInt(location.battery, 0),
       name: input.firstName
     };
 
@@ -218,9 +222,12 @@ async function refreshState() {
     jsonfile.writeFileSync(STATE_FILE, state, {
       spaces: 2
     });
-    if (config.process_type === 'MQTT') {
+    data.forEach(msg => {
+      if (!msg) {
+        return;
+      }
+      if (config.process_type === 'MQTT') {
 
-      data.forEach(msg => {
         if (client !== null) {
           const userTopic = `${topic}/${msg.name}`;
           winston.info('MQTT Message was written to ' + userTopic);
@@ -229,14 +236,13 @@ async function refreshState() {
             retain: true
           });
         }
-      });
-    } else if (config.process_type === 'HTTP') {
-      data.forEach(msg => {
+      } else if (config.process_type === 'HTTP') {
         winston.info('HTTP Message sent for ' + msg.name);
         Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg).catch(err => winston.error(err));
 
-      });
-    }
+      }
+    });
+
 
 
   } catch (err) {
@@ -300,7 +306,19 @@ async.series([
 
     // save current state every 15 minutes
     setInterval(refreshState, interval);
-    refreshState();
+
+    refreshState().then(x => {
+      state.circles.forEach((circle, i, arr) => {
+        winston.info(`Circle ${i + 1} of ${arr.length}: ${circle.name}`);
+      });
+
+      state.members.forEach((member, i, arr) => {
+        const memberData = formatLocation(member);
+        winston.info(`Member ${i + 1} of ${arr.length}\n Name: ${member.firstName}; Data: ${JSON.stringify(memberData, null, 4)} `);
+
+      });
+    });
+
     process.nextTick(next);
   },
   function setupApp(next) {
