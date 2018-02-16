@@ -44,7 +44,7 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
     life360_password: string;
     refresh_minutes: number;
     process_type: 'MQTT' | 'HTTP',
-    user_device_map: [{ life360_name: string, known_devices_name: string }]
+    user_device_map: { life360_name: string, known_devices_name: string }[]
   },
   state = loadSavedState({
     saved_token: null as string | null,
