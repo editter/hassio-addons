@@ -10,7 +10,7 @@ If you want Life360 to update when you enter or leave a Life360 Place open up yo
 
 | Param              | Description                                                                                                                           |
 |--------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| process_type       | Used to determine how the data is pushed to home assistant.  Options are MQTT or HTTP
+| process_type       | Used to determine how the data is pushed to home assistant.  Options are [MQTT](https://home-assistant.io/components/device_tracker.mqtt_json/) or HTTP
 | mqtt_host          | **(only used when process_type=MQTT)** MQTT broker host. Defaults to `mqtt://<mqtt_host>` but if you want to use another protocol use the full URL ex. `ws://examplehost.com` |
 | mqtt_port          | **(only used when process_type=MQTT)** MQTT broker port                                                                                                                      |
 | mqtt_username      | **(only used when process_type=MQTT)** MQTT broker login                                                                                                                     |
@@ -89,7 +89,47 @@ device_tracker:
   }
 ```
 
+#### configuration.yaml
+
+```yaml
+device_tracker:
+```
+
+## Message Bodies
+
+### MQTT
+
+``` json
+{
+  "longitude": -67.89,
+  "latitude": 12.345,
+  "gps_accuracy": 50,
+  "battery_level": 74,
+  "is_intransit": 0,
+  "is_charging": 0,
+  "name": "Eric"
+}
+```
+
+### HTTP
+
+``` json
+{
+  "dev_id": "eric_phone",
+  "gps": [12.345, -67.89],
+  "gps_accuracy": 50,
+  "battery": 74,
+  "is_charging": 1,
+  "name": "Eric"
+}
+```
+
 ## Releases
+
+### 0.0.8
+
+- Added is_charging option per user request
+- Removed address from MQTT message
 
 ### 0.0.7
 

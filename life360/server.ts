@@ -192,7 +192,7 @@ function formatLocation(input: Member) {
       gps_accuracy: parseInt(location.accuracy, 0),
       battery_level: parseInt(location.battery, 0),
       is_intransit: parseInt(location.inTransit, 0),
-      address: location.address1,
+      is_charging: parseInt(location.charge, 0),
       name: input.firstName
     };
 
@@ -204,6 +204,7 @@ function formatLocation(input: Member) {
       gps: [parseFloat(location.latitude), parseFloat(location.longitude)],
       gps_accuracy: parseInt(location.accuracy, 0),
       battery: parseInt(location.battery, 0),
+      is_charging: parseInt(location.charge, 0),
       name: input.firstName
     };
 
@@ -340,31 +341,6 @@ async.series([
 
       }
     });
-
-    // app.get('/check', (req, res) => {
-    //   let output = 'Life 360 Plugin';
-    //   output += '<style>h3{margin-bottom:0}</style>';
-    //   output += '<h3>Places</h3><br />';
-    //   output += '<pre><code>';
-    //   output += JSON.stringify(state.places.map(x => new Object({
-    //     name: x.name,
-    //     latitude: x.latitude,
-    //     longitude: x.longitude,
-    //     radius: x.radius
-    //   })), null, 4);
-    //   output += '</code></pre>';
-    //   output += '<h3>Circles</h3><br />';
-    //   output += '<pre><code>';
-    //   output += JSON.stringify(state.circles.map(x => new Object({
-    //     name: x.name
-    //   })), null, 4);
-    //   output += '</code></pre>';
-    //   output += '<h3>Members</h3><br />';
-    //   output += '<pre><code>';
-    //   output += JSON.stringify(state.members.map(x => formatLocation(x)), null, 4);
-    //   output += '</code></pre>';
-    //   res.send(output).end();
-    // });
 
     app.use((err: any, req: Request, res: Response, n: NextFunction) => {
       winston.error(err);

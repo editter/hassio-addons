@@ -1,6 +1,6 @@
 {
   "name": "life360",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "slug": "life360",
   "description": "Life 360 addon for getting location data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
@@ -31,7 +31,7 @@
     "life360_password": ""
   },
   "schema": {
-    "process_type": "str",
+    "process_type": "match(^(MQTT|HTTP)$)",
     "mqtt_host": "str",
     "mqtt_port": "int",
     "mqtt_username": "str",
