@@ -107,7 +107,14 @@ device_tracker:
   "battery_level": 74,
   "is_intransit": 0,
   "is_charging": 0,
-  "name": "Eric"
+  "name": "Eric",
+  "speed": -1,
+  "is_driving": 0,
+  "is_intransit": 0,
+  "is_charging": 1,
+  "wifi_state": 1,
+  "address1": "123 Sesame St",
+  "address2":""
 }
 ```
 
@@ -119,8 +126,16 @@ device_tracker:
   "gps": [12.345, -67.89],
   "gps_accuracy": 50,
   "battery": 74,
-  "is_charging": 1,
-  "name": "Eric"
+  "name": "Eric",
+  "attributes": {
+    "speed": -1,
+    "is_driving": 0,
+    "is_intransit": 0,
+    "is_charging": 1,
+    "wifi_state": 1,
+    "address1": "123 Sesame St",
+    "address2":""
+  }
 }
 ```
 
