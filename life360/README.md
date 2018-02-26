@@ -126,6 +126,10 @@ device_tracker:
 
 ## Releases
 
+### 0.0.9
+
+- Moved attributes for HTTP so they are accessible in sensor
+
 ### 0.0.8
 
 - Added is_charging option per user request

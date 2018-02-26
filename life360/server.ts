@@ -191,9 +191,14 @@ function formatLocation(input: Member) {
       latitude: parseFloat(location.latitude),
       gps_accuracy: parseInt(location.accuracy, 0),
       battery_level: parseInt(location.battery, 0),
+      name: input.firstName,
+      speed: location.speed,
+      is_driving: parseInt(location.isDriving, 0),
       is_intransit: parseInt(location.inTransit, 0),
       is_charging: parseInt(location.charge, 0),
-      name: input.firstName
+      wifi_state: parseInt(location.wifiState, 0),
+      address1: location.address1,
+      address2: location.address2,
     };
 
   } else if (config.process_type === 'HTTP') {
@@ -204,7 +209,15 @@ function formatLocation(input: Member) {
       gps: [parseFloat(location.latitude), parseFloat(location.longitude)],
       gps_accuracy: parseInt(location.accuracy, 0),
       battery: parseInt(location.battery, 0),
-      is_charging: parseInt(location.charge, 0),
+      attributes: {
+        speed: location.speed,
+        is_driving: parseInt(location.isDriving, 0),
+        is_intransit: parseInt(location.inTransit, 0),
+        is_charging: parseInt(location.charge, 0),
+        wifi_state: parseInt(location.wifiState, 0),
+        address1: location.address1,
+        address2: location.address2,
+      },
       name: input.firstName
     };
 
