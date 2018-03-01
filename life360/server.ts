@@ -75,6 +75,10 @@ if (config.process_type === 'MQTT') {
   process.exit(1);
 }
 
+function hasCert() {
+  return config.cert_file.length === 0 || config.key_file.length === 0
+}
+
 winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, {
   timestamp: () => {
@@ -153,7 +157,7 @@ async function refreshToken() {
         placesResponse.data.places.forEach(x => state.places.push(x));
       }
 
-      if (config.host_url && config.host_url.length > 0) {
+      if (config.host_url && config.host_url.length > 0 && hasCert()) {
         await Axios.delete(`${baseUrl}/circles/${circ.id}/webhook.json`, headers);
         const returnUrl = config.host_url + '/webhook?access_token=' + state.access_token;
         const webhookResponse = await Axios.post(`${baseUrl}/circles/${circ.id}/webhook.json`, {
@@ -163,6 +167,8 @@ async function refreshToken() {
         if (!webhookResponse.data.hookUrl) {
           winston.warn('Webhook was not created. ' + circleResponse.data.errorMessage);
         }
+      } else {
+        winston.warn('No Webhook created because url or certs were not set');
       }
       callback();
     }, (err) => {
@@ -363,10 +369,7 @@ async.series([
       });
     });
 
-    if (isProd === true && (config.cert_file.length === 0 || config.key_file.length === 0)) {
-      next('cert_file and key_file are required');
-
-    } else if (isProd === false) {
+    if (!hasCert()) {
       winston.info('No certificate files found, listing via http');
       app.listen(PORT, next);
 
