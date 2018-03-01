@@ -76,7 +76,7 @@ if (config.process_type === 'MQTT') {
 }
 
 function hasCert() {
-  return config.cert_file.length === 0 || config.key_file.length === 0
+  return config.cert_file.length > 0 && config.key_file.length > 0;
 }
 
 winston.remove(winston.transports.Console);
