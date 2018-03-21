@@ -7,10 +7,7 @@
 import { Circle, Member, Place, PlacesRequest, CirclesRequest, TokenRequest, MembersRequest, Location } from './life360';
 
 import * as winston from 'winston';
-import * as express from 'express';
-import * as https from 'https';
-const expressWinston: any = require('express-winston');
-import * as bodyparser from 'body-parser';
+
 import * as mqtt from 'mqtt';
 import * as async from 'async';
 import * as jsonfile from 'jsonfile';
@@ -28,7 +25,6 @@ const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   OPTIONS_FILE = path.join(CONFIG_DIR, 'options.json'),
   CURRENT_VERSION: string = jsonfile.readFileSync(path.join('package.json')).version,
   isProd = process.env.IS_PROD === 'true',
-  app = express(),
   PORT = 8081,
   baseUrl = 'https://api.life360.com/v3',
   config = jsonfile.readFileSync(OPTIONS_FILE) as {
@@ -75,8 +71,8 @@ if (config.process_type === 'MQTT') {
   process.exit(1);
 }
 
-function hasCert() {
-  return config.cert_file.length > 0 && config.key_file.length > 0;
+function isServer() {
+  return config.host_url && config.host_url.length > 0 && config.cert_file.length > 0 && config.key_file.length > 0;
 }
 
 winston.remove(winston.transports.Console);
@@ -157,7 +153,7 @@ async function refreshToken() {
         placesResponse.data.places.forEach(x => state.places.push(x));
       }
 
-      if (config.host_url && config.host_url.length > 0 && hasCert()) {
+      if (isServer()) {
         await Axios.delete(`${baseUrl}/circles/${circ.id}/webhook.json`, headers);
         const returnUrl = config.host_url + '/webhook?access_token=' + state.access_token;
         const webhookResponse = await Axios.post(`${baseUrl}/circles/${circ.id}/webhook.json`, {
@@ -341,52 +337,59 @@ async.series([
 
     process.nextTick(next);
   },
-  function setupApp(next) {
-    winston.info('Configuring server');
+  async function setupApp(next) {
+    if (isServer()) {
+      winston.info('Configuring server');
+      const express = await import('express');
+      const https = await import('https');
+      // const expressWinston: any = await import('express-winston');
+      const bodyparser = await import('body-parser');
+      const app = express();
 
-    // accept JSON
-    app.use(bodyparser.json());
+      app.use(bodyparser.json());
 
-    // webhook event from life360
-    app.all('/webhook', async (req, res, n) => {
-      if (req.query.access_token === state.access_token) {
-        winston.info('Webhook call received with valid access token');
+      // webhook event from life360
+      app.all('/webhook', async (req, res, n) => {
+        if (req.query.access_token === state.access_token) {
+          winston.info('Webhook call received with valid access token');
 
-        await refreshState();
-        return res.send('ok').end();
-      } else {
-        winston.info('Webhook call was made with invalid access token');
-        return res.send('Webhook is visible externally').end();
+          await refreshState();
+          return res.send('ok').end();
+        } else {
+          winston.info('Webhook call was made with invalid access token');
+          return res.send('Webhook is visible externally').end();
 
-      }
-    });
+        }
 
-    app.use((err: any, req: Request, res: Response, n: NextFunction) => {
-      winston.error(err);
-
-      return res.status(500).send({
-        errorMessage: 'An unhandled error occured'
       });
-    });
 
-    if (!hasCert()) {
-      winston.info('No certificate files found, listing via http');
-      app.listen(PORT, next);
+      app.use((err: any, req: Request, res: Response, n: NextFunction) => {
+        winston.error(err);
 
-    } else {
-      winston.info('Listing via https');
-      const options = {
-        cert: fs.readFileSync(path.join('/ssl/', config.cert_file)),
-        key: fs.readFileSync(path.join('/ssl/', config.key_file))
-      };
-      https.createServer(options, app as any).listen(PORT, next);
-
+        return res.status(500).send({
+          errorMessage: 'An unhandled error occured'
+        });
+      });
+      if (isProd) {
+        winston.info('Listing via https');
+        const options = {
+          cert: fs.readFileSync(path.join('/ssl/', config.cert_file)),
+          key: fs.readFileSync(path.join('/ssl/', config.key_file))
+        };
+        https.createServer(options, app as any).listen(PORT, next);
+      } else {
+        app.listen(PORT, next);
+      }
+      winston.info('Listening at port %s', PORT);
     }
+    // accept JSON
+
+
+
 
   }
 ], (error) => {
   if (error) {
     return winston.error(<any>error);
   }
-  winston.info('Listening at port %s', PORT);
 });

@@ -1,6 +1,6 @@
 {
   "name": "life360-addon",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "",
   "main": "server.js",
   "repository": "https://github.com/editter/hassio-addons/tree/master/life360",
