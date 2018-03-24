@@ -220,7 +220,7 @@ function formatLocation(input: Member) {
         address1: location.address1,
         address2: location.address2,
       },
-      name: input.firstName
+      friendly_name: input.firstName
     };
 
   }
