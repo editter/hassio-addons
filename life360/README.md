@@ -10,6 +10,14 @@ To view additional options see [setup.md](https://github.com/editter/hassio-addo
 
 ## Releases
 
+### 0.0.12
+
+- Added hassio api key
+
+### 0.0.11
+
+- Removed the server if there isn't a webhook
+
 ### 0.0.10
 
 - Removed the requirement for SSL certificates.  Not webhook is setup in that case

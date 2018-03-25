@@ -220,7 +220,7 @@ function formatLocation(input: Member) {
         address1: location.address1,
         address2: location.address2,
       },
-      friendly_name: input.firstName
+      // friendly_name: input.firstName
     };
 
   }
@@ -253,8 +253,13 @@ async function refreshState() {
           });
         }
       } else if (config.process_type === 'HTTP') {
-        winston.info('HTTP Message sent for ' + msg.name);
-        Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg).catch(err => winston.error(err));
+        winston.info('HTTP Message sent for ' + msg.dev_id);
+        const conf = {
+          headers: {
+            'X-HASSIO-KEY': process.env.HASSIO_TOKEN
+          }
+        };
+        Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg, conf).catch(err => winston.error(err));
 
       }
     });
