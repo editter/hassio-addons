@@ -1,6 +1,6 @@
 {
   "name": "life360",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "slug": "life360",
   "description": "Life 360 addon for getting location data",
   "url": "https://github.com/editter/hassio-addons/tree/master/life360",
@@ -8,6 +8,7 @@
   "boot": "auto",
   "host_network": false,
   "hassio_api": true,
+  "homeassistant_api":true,
   "map": ["ssl"],
   "image": "editter/life360-{arch}",
   "ports": {
@@ -23,7 +24,7 @@
     "cert_file": "fullchain.pem",
     "key_file": "privkey.pem",
     "host_url": "https://mySite.com:8081",
-    "refresh_minutes": 1,
+    "refresh_minutes": 1.0,
     "user_device_map": [{
       "life360_name": "John",
       "known_devices_name": "john_phone"
@@ -43,7 +44,7 @@
     "host_url": "str",
     "life360_user": "str",
     "life360_password": "str",
-    "refresh_minutes": "int",
+    "refresh_minutes": "float",
     "user_device_map": [{
       "life360_name": "str",
       "known_devices_name": "str"

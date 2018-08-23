@@ -42,7 +42,7 @@ eric_phone:
     "cert_file": "fullchain.pem",
     "key_file": "privkey.pem",
     "host_url": "https://mySite.com:8081",
-    "refresh_minutes": 5,
+    "refresh_minutes": 5.5,
     "user_device_map": [],
     "life360_user": "MyLife360User",
     "life360_password": "MyLife360Password"
@@ -72,7 +72,7 @@ device_tracker:
     "cert_file": "fullchain.pem",
     "key_file": "privkey.pem",
     "host_url": "https://mySite.com:8081",
-    "refresh_minutes": 5,
+    "refresh_minutes": 5.5,
     "user_device_map": [{
       "life360_name": "Eric",
       "known_devices_name": "eric_phone"

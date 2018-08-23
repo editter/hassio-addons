@@ -254,12 +254,17 @@ async function refreshState() {
         }
       } else if (config.process_type === 'HTTP') {
         winston.info('HTTP Message sent for ' + msg.dev_id);
+
         const conf = {
           headers: {
-            'X-HASSIO-KEY': process.env.HASSIO_TOKEN
+
+            'x-ha-access': process.env.HASSIO_TOKEN,
+            'content-type': 'application/json'
           }
         };
-        Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg, conf).catch(err => winston.error(err));
+
+        Axios.post('http://hassio/homeassistant/api/services/device_tracker/see', msg, conf)
+          .catch(err => winston.error(err.message));
 
       }
     });
@@ -267,7 +272,7 @@ async function refreshState() {
 
 
   } catch (err) {
-    winston.error(err);
+    winston.error(err.message);
   }
 }
 
@@ -369,7 +374,7 @@ async.series([
       });
 
       app.use((err: any, req: Request, res: Response, n: NextFunction) => {
-        winston.error(err);
+        winston.error(err.message);
 
         return res.status(500).send({
           errorMessage: 'An unhandled error occured'
@@ -395,6 +400,6 @@ async.series([
   }
 ], (error) => {
   if (error) {
-    return winston.error(<any>error);
+    return winston.error((<any>error).message);
   }
 });
