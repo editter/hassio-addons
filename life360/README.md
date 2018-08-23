@@ -1,4 +1,7 @@
 # Home Assistant - Life360 addon
+[![Build Status](https://travis-ci.org/editter/hassio-addons.svg?branch=master)](https://travis-ci.org/editter/hassio-addons)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/editter)
+[![Patreon](https://img.shields.io/badge/Donate-Patreon-blue.svg)](https://www.patreon.com/editter)
 
 Presence detection using the service [Life360](https://life360.com)
 
