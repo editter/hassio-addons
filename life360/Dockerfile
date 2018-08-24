@@ -15,10 +15,10 @@ RUN npm install
 RUN npm run build
 
 
-# RUN chmod a+x /run.sh
+RUN chmod a+x /life360/usr/bin/run.sh
 
 # Run the service
-CMD ["/usr/bin/run.sh"]
+CMD ["/life360/usr/bin/run.sh"]
 
 LABEL \
     io.hass.name="Life360" \
