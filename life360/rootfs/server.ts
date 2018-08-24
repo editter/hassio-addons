@@ -19,7 +19,7 @@ import { v4 } from 'uuid';
 // import { map } from 'async';
 import { MqttClient } from 'mqtt';
 const baseAuthKey = 'cFJFcXVnYWJSZXRyZTRFc3RldGhlcnVmcmVQdW1hbUV4dWNyRUh1YzptM2ZydXBSZXRSZXN3ZXJFQ2hBUHJFOTZxYWtFZHI0Vg==';
-
+console.log('Starting...TS File');
 const CONFIG_DIR = process.env.CONFIG_DIR || './data',
   STATE_FILE = path.join(CONFIG_DIR, 'state.json'),
   OPTIONS_FILE = path.join(CONFIG_DIR, 'options.json'),
